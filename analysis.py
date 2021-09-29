@@ -7,10 +7,12 @@ Created on Wed Sep 22 15:33:14 2021
 import numpy as np
 from sklearn.model_selection import train_test_split
 from sklearn.utils import resample, shuffle
+from sklearn.preprocessing import StandardScaler
 import matplotlib.pyplot as plt
 from matplotlib import cm
 from matplotlib.ticker import LinearLocator, FormatStrFormatter
 from mpl_toolkits.mplot3d import Axes3D
+np.random.seed(seed=42)
 
 
 class FrankeFunction():
@@ -18,14 +20,13 @@ class FrankeFunction():
     Class with all regression functionality (but statistics should probably be
     moved to another doc?)
     Args:
-        x (1d array): x-coordinates 
-        y (1d array): y-coordinates
+        axis_n (int): number of datapoint per axis (total n = axis_n^2)
         noise_var (float or int): variance of the noise
     '''
-    def __init__(self, x = None, y = None, noise_var = 0, plot = False):
+    def __init__(self, axis_n = 20, noise_var = 0, plot = False):
         # Generate x and y vectors divided equally in a 2d grid
-        x = np.linspace(0, 1, 50) if not x else x
-        y = np.linspace(0, 1, 50) if not y else y
+        x = np.linspace(0, 1, axis_n) 
+        y = np.linspace(0, 1, axis_n)
         
         self.x_2d, self.y_2d = np.meshgrid(x,y)
         self.x = self.x_2d.ravel()
@@ -85,8 +86,8 @@ class LinearRegression():
         model (str): model to use in regression (only 'OLS' implemented)
         seed: seed to split the data in order to get reproducable results
     '''
-    def __init__(self, x, y, z_data, degree = 3, split = False, test_size = 0.2,
-                 model = 'OLS', seed = 42):
+    def __init__(self, x, y, z_data, degree = 3, split = False, test_size = 0.3,
+                 model = 'OLS', seed = 42, plot = False):
         
         # NOTE: This is pretty disorganised, sorry... Initiating an instance  
         # will automatically calculate beta and z_model for model (only OLS 
@@ -97,20 +98,56 @@ class LinearRegression():
         self.x = x
         self.y = y
         self.z_data = z_data
-        self.X = self.design_matrix()
+        self.X = self.design_matrix(x, y)
         
         if split: 
+            
+            # Only split currently done, no scaling
             self.X_train, self.X_test, self.z_train, self.z_test = \
-            train_test_split(self.X, self.z_data, test_size, 
-                             shuffle=False, random_state = seed)  
+            self.split_and_scale(self.X, self.z_data, test_size) 
+            
             if model == 'OLS':
                 self.beta = self.OLS(self.X_train, self.z_train)
                 self.z_model = self.predict(self.X_test, self.beta)
+                self.z_model_train = self.predict(self.X_train, self.beta)
+
+                if plot:
+                    x_plot, y_plot = np.linspace(0, 1, 20), np.linspace(0, 1, 20)
+                    x_2d_plot, y_2d_plot = np.meshgrid(x_plot,y_plot)
+                    x_plot, y_plot = x_2d_plot.ravel(), y_2d_plot.ravel()
+                    X_plot = self.design_matrix(x_plot, y_plot)
+                    z_plot = self.predict(X_plot, self.beta)
+                    self.plot(x_2d_plot, y_2d_plot, z_plot)
         else:
             if model == 'OLS':
                 self.beta = self.OLS(self.X, self.z_data)
                 self.z_model = self.predict(self.X, self.beta)
-            
+                
+    def split_and_scale(self, X, z, test_size):
+        X_train, X_test, z_train, z_test = \
+        train_test_split(self.X, self.z_data, test_size=test_size, 
+                         shuffle=True) 
+        
+        #TODO
+        # Scaling still not working, read slides week 38!
+#        X_train = X_train[:, 1:] #= np.ones(len(X_train[:,0]))
+#        X_test = X_test[:, 1:] #[:,0] = np.ones(len(X_test[:,0]))
+        
+#        scaler = StandardScaler(with_std = False)
+#        scaler.fit(X_train)
+#        X_train = scaler.transform(X_train)
+#        X_test = scaler.transform(X_test)
+        
+#        scaler.fit(z_train.reshape(-1, 1))
+#        z_train = scaler.transform(z_train.reshape(-1, 1))
+#        z_test = scaler.transform(z_test.reshape(-1, 1))
+
+        
+        #z_train = (z_test-np.mean(z_test))
+        #z_train = (z_train-np.mean(z_train))
+
+        return X_train, X_test, z_train, z_test
+    
                 
     def OLS(self, X, z):
         '''
@@ -125,7 +162,7 @@ class LinearRegression():
         return beta
     
         
-    def design_matrix(self):
+    def design_matrix(self, x, y):
         '''
         Creates the design matrix
         Args:
@@ -139,7 +176,7 @@ class LinearRegression():
         for y_exp in range(self.degree +1):
             for x_exp in range(self.degree +1):
                 if y_exp + x_exp <= self.degree:
-                    X.append(self.x**x_exp * self.y**y_exp)
+                    X.append(x**x_exp * y**y_exp)
         X = (np.array(X).T).squeeze()
         return X
 
@@ -158,16 +195,10 @@ class LinearRegression():
         '''
         Plot a z vector (after reshaping) given a x and y mesh.
         Can be used to plot z_model in order to visualize results
-        NOTE: only works when split = False (otherwise x_2d and y_2d do not
-        match size of z after reshaping)
         '''
+
         # Reshape z vector into 2d matrix to plot
-        try:
-            z_2d = z.reshape(x_2d.shape[1], x_2d.shape[0])
-        except ValueError: 
-            print('Model could not be plotted. Split must be set to False \
-                  in order to plot model')
-            return
+        z_2d = z.reshape(x_2d.shape[1], x_2d.shape[0])
 
         # Plot
         fig = plt.figure()
@@ -184,10 +215,11 @@ class LinearRegression():
         plt.show()
     
         
-    def MSE(self, z_test, z_model):
-        sun_sq_error = np.sum((z_test - z_model) ** 2)
+    def MSE(self, z, z_model):
+        sum_sq_error = np.sum((z - z_model) ** 2)
+        mse = sum_sq_error/len(z_model)
         
-        return sun_sq_error / np.size(z_model)
+        return mse
     
     def R2(self, z_test, z_model):
         sum_sq_error = np.sum((z_test - z_model) ** 2)
@@ -195,41 +227,47 @@ class LinearRegression():
         
         return 1 - (sum_sq_error / sum_sq_res)
     
-    def bias(self, z_test, z_model):
+    def bias(self, z, z_model):
         
-        return np.mean((z_test - z_model)**2)
+        return np.mean((np.mean(z_model) - z)**2)
     
     def var(self, z_model):
-        return np.mean(np.var(z_model))
+        
+        var_numpy = np.var(z_model)
+        var = np.mean((np.mean(z_model)-z_model)**2)
+        if var_numpy != var:
+            print('Warning: Something is wrong with variance')
+        return var
         
     def beta_variance(self, X, sigma_sq = 1):
-        return sigma_sq * (np.linalg.pinv(X.T @ X))
+        return np.diagonal( sigma_sq * (np.linalg.pinv(X.T @ X)))
+
     
-    def bootstrap(self, X_train, X_test, z_train, z_test, bootstrap_nr=None, 
-                  model='OLS', lamb=0):
+    def bootstrap(self, X_train, X_test, z_train, z_test, bootstrap_nr=None, model='OLS', lamb=0):
         """
         Bootstrap sampling. 
         Args: 
-            X_train (2d array): design matrix
+            X_train (2d array): train design matrix
+            X_test (2d array): test design matrix
             z_train (1d array): train z vector
             z_test (1d array): test z vector
             bootstrap_nr: number of bootstraps, defaults to len(z_train)
             model (str): Regression model used. 'OLS', 'Ridge', or 'Lasso' 
-                (only OLS currently implemented). Defaults ot OLS. 
+                (only OLS currently implemented). Defaults to OLS. 
             lamb (float): value of lambda for Ridge and Lasso regressions
             
         Returns: 
-            z_train (list[1d array]): List of arrays of len(z_train). The list 
-                has length = bootstrap_nr
-            z_model
-            z_fit
+            mean MSE (float)
+            mean bias (float)
+            mean variance (float)
         """
         
         if not bootstrap_nr: bootstrap_nr = len(z_train)
         
-        z_train_boot = []
-        z_model_boot = []
-        z_fit_boot = []
+        MSE_v = []
+        bias_v = []
+        var_v = []
+        z_model = []
         for i in range(bootstrap_nr):
             
             tmp_X_train, tmp_z_train = resample(X_train, z_train, replace=True)
@@ -237,15 +275,19 @@ class LinearRegression():
             if model == "Ridge": pass
             if model == "Lasso": pass
             
-            z_train_boot.append(tmp_z_train)
-            z_model_boot.append(X_test @ tmp_beta)
-            z_fit_boot.append(tmp_X_train @ tmp_beta)
- 
+            tmp_z_model = self.predict(X_test, tmp_beta)
+            z_model.append(tmp_z_model)
+            
+            MSE_v.append( self.MSE(z_test, tmp_z_model))
+            bias_v.append( self.bias(z_test, tmp_z_model))
+            var_v.append( self.var(tmp_z_model))
+             
     
-        return z_train_boot, z_model_boot, z_fit_boot
+        return np.mean(MSE_v), np.mean(bias_v), np.mean(var_v) 
     
     
     
+    # TODO, work in progress!
     def kfold(self, X, z, k=5, model="OLS", lamb=0):
         """
         Cross-validation 
@@ -297,15 +339,14 @@ class LinearRegression():
 if __name__ == '__main__':
     
     # Get input data, plot function 
-    ff = FrankeFunction(noise_var = 0.05, plot=True)
+    ff = FrankeFunction(noise_var = 0.05, axis_n = 20, plot=True)
     # Linear regression
-    ols = LinearRegression(ff.x, ff.y, ff.z, degree = 5, split=False)
-    ols.plot(ff.x_2d, ff.y_2d, ols.z_model)
+    ols = LinearRegression(ff.x, ff.y, ff.z, degree = 5, split=True, test_size = 0.3, plot=False)
+    #ols.plot(ff.x_2d, ff.y_2d, ols.z_model)
+    print(ols.MSE(ols.z_test, ols.z_model))
     
-#    # Examples of using bootstrap and kfold sampling:
+#    # Exeples of using bootstrap:
 #    # NOTE: split arg in LinearRegression() must be set to True in order to
-#    # use bootstrap() and kfold()
-#    z_train, z_model, z_fit = ols.bootstrap(ols.X_train, ols.X_test, 
-#                                            ols.z_train, ols.z_test, 
+#    # use bootstrap() 
+#    MSE_v, bias_v, var_v  = ols.bootstrap(ols.X, ols.z_data,
 #                                            bootstrap_nr=3)
-#    z_train, z_model, z_fit = ols.kfold(ols.X, ols.z_data, k=3)
