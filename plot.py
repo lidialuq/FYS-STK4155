@@ -37,7 +37,7 @@ def plot_conf_interval(data,model='OLS',lamb=0,noise_var=0.05,axis_n=10,degree=5
 def plot_train_test_MSE(data,model='OLS',lamb=0, max_degree=9):
     '''
     Exercice 2
-    Plot test and train MSE. FOr "nice" plot, axis_n=10, noise_var=0.05, 
+    Plot test and train MSE. For "nice" plot, axis_n=50, noise_var=0.05, 
     # deg range(1,9)
     '''
     
@@ -81,39 +81,64 @@ def plot_bias_var_bootstrap(data,model='OLS',lamb=0,bootstrap_nr=100,max_degree=
     plt.plot(x, MSE, 'b') 
     plt.plot(x, bias, 'r') 
     plt.plot(x, var, 'g') 
-    plt.yscale('log')
+    # plt.yscale('log')
     plt.legend(["MSE", "bias", "var"])
     plt.title("Bias-variance (bootstrap)")
     plt.xlabel("Model complexity (degree)")
     plt.show()
+
+def plot_bias_var_kfolds(data,model='OLS',lamb=0,kfld=5,max_degree=9):
+    MSE, bias, var = [],[],[]
+    x = []
     
+    for deg in range(1,max_degree):
+        x.append(deg)
+        reg = LinearRegression(data[0], data[1], data[2], degree = deg, split=True,
+                           model=model,lamb=lamb)
+        X_des = reg.design_matrix(x=data[0],y=data[1])
+        a = LinearRegression(data[0], data[1], data[2],split=True).split_and_scale(X_des, data[2],test_size=0.3)
+        MSE_, bias_, var_ = reg.kfold(X_des, data[2],k=kfld)
+        MSE.append(MSE_)
+        bias.append(bias_)
+        var.append(var_)
+        
+    plt.plot(x, MSE, 'b') 
+    plt.plot(x, bias, 'r') 
+    plt.plot(x, var, 'g') 
+    # plt.yscale('log')
+    plt.legend(["MSE", "bias", "var"])
+    plt.title("Bias-variance (k-folds)")
+    plt.xlabel("Model complexity (degree)")
+    plt.show()
+
 #%%Exercise 1
-ff = FrankeFunction(axis_n = 10, noise_var = 0.05, plot=False)
+ff = FrankeFunction(axis_n = 100, noise_var = 0.05, plot=False)
 ff_data = [ff.x,ff.y,ff.z]
 
 plt.figure()
 plot_train_test_MSE(ff_data)
 #%%Exercise 2
 plt.figure()
-plot_conf_interval(ff_data)
+# plot_conf_interval(ff_data) 
 plot_bias_var_bootstrap(ff_data)
 #%%Exercise 3
-
+plt.figure()
+plot_bias_var_kfolds(ff_data,kfld=10)
 #%%Exercise 4
 #MSE
 n_lamb = 8
-lambs = np.logspace(-4,3,n_lamb)
+lambs = np.logspace(-7,0,n_lamb)
 plt.figure()
 for i in range(n_lamb):
     plt.subplot(2,4,i+1)
-    plot_train_test_MSE(ff_data,model='Ridge',lamb=lambs[i])
+    plot_train_test_MSE(ff_data,model='Ridge',lamb=lambs[i],max_degree=15)
     plt.title('$\lambda$='+str(lambs[i]))
 
 plt.tight_layout()
 
 #Bootstrap
 n_lamb = 8
-lambs = np.logspace(-4,3,n_lamb)
+lambs = np.logspace(-7,0,n_lamb)
 plt.figure()
 for i in range(n_lamb):
     plt.subplot(2,4,i+1)
@@ -122,10 +147,21 @@ for i in range(n_lamb):
 
 plt.tight_layout()
 
+#K-folds
+n_lamb = 8
+lambs = np.logspace(-4,3,n_lamb)
+plt.figure()
+for i in range(n_lamb):
+    plt.subplot(2,4,i+1)
+    plot_bias_var_kfolds(ff_data,model='Ridge',lamb=lambs[i])
+    plt.title('$\lambda$='+str(lambs[i]))
+
+plt.tight_layout()
+
 #%%Exercise 5
 
 n_lamb = 8
-lambs = np.logspace(-4,3,n_lamb)
+lambs = np.logspace(-7,0,n_lamb)
 plt.figure()
 for i in range(n_lamb):
     plt.subplot(2,4,i+1)
@@ -141,6 +177,18 @@ plt.figure()
 for i in range(n_lamb):
     plt.subplot(2,4,i+1)
     plot_bias_var_bootstrap(ff_data,model='Lasso',lamb=lambs[i])
+    plt.title('$\lambda$='+str(lambs[i]))
+
+plt.tight_layout()
+
+
+#K-folds
+n_lamb = 8
+lambs = np.logspace(-4,3,n_lamb)
+plt.figure()
+for i in range(n_lamb):
+    plt.subplot(2,4,i+1)
+    plot_bias_var_kfolds(ff_data,model='Lasso',lamb=lambs[i])
     plt.title('$\lambda$='+str(lambs[i]))
 
 plt.tight_layout()
@@ -169,10 +217,11 @@ reg = LinearRegression(terrain_data[0], terrain_data[1], terrain_data[2], degree
 
 #%%
 #Terrain data OLS
+plt.figure()
 plot_train_test_MSE(terrain_data)
 # plot_conf_interval(terrain_data)
 plot_bias_var_bootstrap(terrain_data)
-
+plot_bias_var_kfolds(terrain_data)
 #%%    
 #Terrain data Ridge
 n_lamb = 8
@@ -194,6 +243,15 @@ for i in range(n_lamb):
     plt.title('$\lambda$='+str(lambs[i]))
 plt.tight_layout()
 
+n_lamb = 8
+lambs = np.logspace(-4,3,n_lamb)
+plt.figure()
+for i in range(n_lamb):
+    plt.subplot(2,4,i+1)
+    plot_bias_var_kfolds(terrain_data,model='Ridge',lamb=lambs[i])
+    plt.title('$\lambda$='+str(lambs[i]))
+plt.tight_layout()
+
 #%%
 #Terrain data Lasso
 n_lamb = 8
@@ -212,5 +270,14 @@ plt.figure()
 for i in range(n_lamb):
     plt.subplot(2,4,i+1)
     plot_bias_var_bootstrap(terrain_data,model='Lasso',lamb=lambs[i])
+    plt.title('$\lambda$='+str(lambs[i]))
+plt.tight_layout()
+
+n_lamb = 8
+lambs = np.logspace(-4,3,n_lamb)
+plt.figure()
+for i in range(n_lamb):
+    plt.subplot(2,4,i+1)
+    plot_bias_var_kfolds(terrain_data,model='Lasso',lamb=lambs[i])
     plt.title('$\lambda$='+str(lambs[i]))
 plt.tight_layout()

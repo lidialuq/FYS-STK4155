@@ -156,7 +156,11 @@ class LinearRegression():
         X_train, X_test, z_train, z_test = \
         train_test_split(self.X, self.z_data, test_size=test_size, 
                          shuffle=True) 
-        
+        for i in range(len(X_train.T)):
+            X_train[:,i] = X_train[:,i] - np.mean(X_train[:,i])
+            X_test[:,i]  = X_test[:,i] - np.mean(X_test[:,i])
+        z_train = z_train - np.mean(z_train)
+        z_test = z_test - np.mean(z_test)
         #TODO
         # Scaling still not working, read slides week 38!
 #        X_train = X_train[:, 1:] #= np.ones(len(X_train[:,0]))
@@ -200,7 +204,7 @@ class LinearRegression():
             beta (1d array): regression parameters
         '''
         A = self.lamb*np.eye(len(X.T))
-        A[0,0] = 0
+        # A[0,0] = 0
         beta = np.linalg.pinv(X.T @ X + A) @  (X.T @ z)
         return beta
 
@@ -313,7 +317,7 @@ class LinearRegression():
             z_test (1d array): test z vector
             bootstrap_nr: number of bootstraps, defaults to len(z_train)
             model (str): Regression model used. 'OLS', 'Ridge', or 'Lasso' 
-                (only OLS currently implemented). Defaults to OLS. 
+            Defaults to OLS. 
             lamb (float): value of lambda for Ridge and Lasso regressions
             
         Returns: 
@@ -356,7 +360,7 @@ class LinearRegression():
             z (1d array): z-vector
             k (int): number of folds to divide data into
             model (str): Regression model used. 'OLS', 'Ridge', or 'Lasso' 
-                (only OLS currently implemented). Defaults ot OLS. 
+            Defaults ot OLS. 
             lamb (float): value of lambda for Ridge and Lasso regressions
             
         Returns: 
@@ -377,6 +381,10 @@ class LinearRegression():
         z_train = []
         z_model = []
         z_fit = []
+
+        MSE_v = []
+        bias_v = []
+        var_v = []
         for i in range(k):
             # test vectors are fold index i, train vectors the rest
             tmp_X_test = X_folds[i]
@@ -392,8 +400,15 @@ class LinearRegression():
             z_train.append(tmp_z_train)
             z_model.append((tmp_X_test @ tmp_beta).ravel())
             z_fit.append((tmp_X_train @ tmp_beta).ravel())
+
+            tmp_z_model = self.predict(tmp_X_test, tmp_beta)
+            z_model.append(tmp_z_model)
+            
+            MSE_v.append( self.MSE(tmp_z_test, tmp_z_model))
+            bias_v.append( self.bias(tmp_z_test, tmp_z_model))
+            var_v.append( self.var(tmp_z_model))
         
-        return z_train, z_model, z_fit
+        return np.mean(MSE_v), np.mean(bias_v), np.mean(var_v)
             
 
 if __name__ == '__main__':
