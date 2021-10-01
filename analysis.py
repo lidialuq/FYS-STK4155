@@ -8,6 +8,7 @@ import numpy as np
 from sklearn.model_selection import train_test_split
 from sklearn.utils import resample, shuffle
 from sklearn.preprocessing import StandardScaler
+from sklearn import linear_model
 import matplotlib.pyplot as plt
 from matplotlib import cm
 from matplotlib.ticker import LinearLocator, FormatStrFormatter
@@ -87,7 +88,7 @@ class LinearRegression():
         seed: seed to split the data in order to get reproducable results
     '''
     def __init__(self, x, y, z_data, degree = 3, split = False, test_size = 0.3,
-                 model = 'OLS', seed = 42, plot = False):
+                 model = 'OLS', seed = 42, lamb=0,plot = False):
         
         # NOTE: This is pretty disorganised, sorry... Initiating an instance  
         # will automatically calculate beta and z_model for model (only OLS 
@@ -99,6 +100,7 @@ class LinearRegression():
         self.y = y
         self.z_data = z_data
         self.X = self.design_matrix(x, y)
+        self.lamb = lamb
         
         if split: 
             
@@ -110,7 +112,6 @@ class LinearRegression():
                 self.beta = self.OLS(self.X_train, self.z_train)
                 self.z_model = self.predict(self.X_test, self.beta)
                 self.z_model_train = self.predict(self.X_train, self.beta)
-
                 if plot:
                     x_plot, y_plot = np.linspace(0, 1, 20), np.linspace(0, 1, 20)
                     x_2d_plot, y_2d_plot = np.meshgrid(x_plot,y_plot)
@@ -118,10 +119,38 @@ class LinearRegression():
                     X_plot = self.design_matrix(x_plot, y_plot)
                     z_plot = self.predict(X_plot, self.beta)
                     self.plot(x_2d_plot, y_2d_plot, z_plot)
+            elif model == 'Ridge':
+                self.beta = self.Ridge_regression(self.X_train, self.z_train)
+                self.z_model = self.predict(self.X_test, self.beta)
+                self.z_model_train = self.predict(self.X_train, self.beta)
+                if plot:
+                    x_plot, y_plot = np.linspace(0, 1, 20), np.linspace(0, 1, 20)
+                    x_2d_plot, y_2d_plot = np.meshgrid(x_plot,y_plot)
+                    x_plot, y_plot = x_2d_plot.ravel(), y_2d_plot.ravel()
+                    X_plot = self.design_matrix(x_plot, y_plot)
+                    z_plot = self.predict(X_plot, self.beta)
+                    self.plot(x_2d_plot, y_2d_plot, z_plot)
+            elif model == 'Lasso':
+                self.beta, self.intercept = self.Lasso_regression(self.X_train, self.z_train)
+                self.z_model = self.predict(self.X_test, self.beta,self.intercept)
+                self.z_model_train = self.predict(self.X_train, self.beta, self.intercept)
+                if plot:
+                    x_plot, y_plot = np.linspace(0, 1, 20), np.linspace(0, 1, 20)
+                    x_2d_plot, y_2d_plot = np.meshgrid(x_plot,y_plot)
+                    x_plot, y_plot = x_2d_plot.ravel(), y_2d_plot.ravel()
+                    X_plot = self.design_matrix(x_plot, y_plot)
+                    z_plot = self.predict(X_plot, self.beta)
+                    self.plot(x_2d_plot, y_2d_plot, z_plot)   
         else:
             if model == 'OLS':
                 self.beta = self.OLS(self.X, self.z_data)
                 self.z_model = self.predict(self.X, self.beta)
+            elif model == 'Ridge':
+                self.beta = self.Ridge_regression(self.X, self.z_data)
+                self.z_model = self.predict(self.X, self.beta)
+            elif model == 'Lasso':
+                self.beta, self.intercept = self.Lasso_regression(self.X, self.z_data)
+                self.z_model = self.predict(self.X, self.beta, intercept=self.intercept)
                 
     def split_and_scale(self, X, z, test_size):
         X_train, X_test, z_train, z_test = \
@@ -161,6 +190,37 @@ class LinearRegression():
         beta = np.linalg.pinv(X.T @ X) @ X.T @ z
         return beta
     
+    def Ridge_regression(self, X, z):
+        '''
+        Get parameters for Ridge regression
+        Args: 
+            X (2d array): design matrix
+            z (1d array): z vector (input to model)
+        Return: 
+            beta (1d array): regression parameters
+        '''
+        A = self.lamb*np.eye(len(X.T))
+        A[0,0] = 0
+        beta = np.linalg.pinv(X.T @ X + A) @  (X.T @ z)
+        return beta
+
+    def Lasso_regression(self, X, z):
+        '''
+        Get parameters for Lasso regression
+        Args: 
+            X (2d array): design matrix
+            z (1d array): z vector (input to model)
+            lambd (scalar): lambda value for sparsity constraint parameter
+        Return: 
+            beta (1d array): regression parameters
+        '''
+
+        model = linear_model.Lasso(alpha=self.lamb,max_iter=5000)
+        reg = model.fit(X,z)
+        beta = reg.coef_
+        intercept = reg.intercept_
+        return beta.T, intercept
+    
         
     def design_matrix(self, x, y):
         '''
@@ -180,7 +240,7 @@ class LinearRegression():
         X = (np.array(X).T).squeeze()
         return X
 
-    def predict(self, X, beta):
+    def predict(self, X, beta,intercept=0):
         '''
         Predicts z values from regression parameters and the design matrix
         Args: 
@@ -189,7 +249,7 @@ class LinearRegression():
         Return: 
             z (1d array): predicted z-values
         '''
-        return (X @ beta)
+        return (X @ beta)+intercept
         
     def plot(self, x_2d, y_2d, z):
         '''
@@ -272,8 +332,8 @@ class LinearRegression():
             
             tmp_X_train, tmp_z_train = resample(X_train, z_train, replace=True)
             if model == "OLS": tmp_beta = self.OLS(tmp_X_train, tmp_z_train)
-            if model == "Ridge": pass
-            if model == "Lasso": pass
+            if model == "Ridge": tmp_beta = self.Ridge_regression(tmp_X_train, tmp_z_train,lamb)
+            if model == "Lasso": tmp_beta = self.Lasso_regression(tmp_X_train, tmp_z_train,lamb)
             
             tmp_z_model = self.predict(X_test, tmp_beta)
             z_model.append(tmp_z_model)
@@ -297,7 +357,7 @@ class LinearRegression():
             k (int): number of folds to divide data into
             model (str): Regression model used. 'OLS', 'Ridge', or 'Lasso' 
                 (only OLS currently implemented). Defaults ot OLS. 
-            lambda (float): value of lambda for Ridge and Lasso regressions
+            lamb (float): value of lambda for Ridge and Lasso regressions
             
         Returns: 
             z_train (list[1d array]): List of arrays of len(z_train). The list 
@@ -326,8 +386,8 @@ class LinearRegression():
             
             # regression
             if model == "OLS": tmp_beta = self.OLS(tmp_X_train, tmp_z_train)
-            if model == "Ridge": pass
-            if model == "Lasso": pass
+            if model == "Ridge": tmp_beta = self.Ridge_regression(tmp_X_train, tmp_z_train,lamb)
+            if model == "Lasso": tmp_beta = self.Lasso_regression(tmp_X_train, tmp_z_train,lamb)
         
             z_train.append(tmp_z_train)
             z_model.append((tmp_X_test @ tmp_beta).ravel())

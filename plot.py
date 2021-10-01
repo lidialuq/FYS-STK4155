@@ -9,77 +9,70 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-def plot_conf_interval():
+def plot_conf_interval(data,model='OLS',lamb=0,noise_var=0.05,axis_n=10,degree=5):
     '''
     Exercice 1
     Plot betas with confidence intervals. Get MSE and R2
     '''
-    noise_var = 0.05
-    axis_n = 10
-    degree= 5
-    ff = FrankeFunction(axis_n = axis_n, noise_var = noise_var, plot=False)
-    ols = LinearRegression(ff.x, ff.y, ff.z, degree = degree, split=False)
-    beta_var = ols.beta_variance(ols.X, sigma_sq = noise_var)
+    
+    reg = LinearRegression(data[0], data[1], data[2], degree = degree, split=False,
+                           model=model,lamb=lamb)
+    beta_var = reg.beta_variance(reg.X, sigma_sq = noise_var)
     x = list(range(0, len(beta_var)))
     beta_conf = 1.96*np.sqrt(beta_var/axis_n**2)
     
-    plt.errorbar(x, ols.beta, yerr=beta_conf, markersize=4, linewidth=1, \
+    plt.errorbar(x, reg.beta, yerr=beta_conf, markersize=4, linewidth=1, \
                  ecolor="black", fmt='o', capsize=5, capthick=1)
     plt.title("Regression parameters")
-    x_labels = [r"$\beta_"+"{{{:}}}$".format(i) for i in range(len(ols.beta))]
+    x_labels = [r"$\beta_"+"{{{:}}}$".format(i) for i in range(len(reg.beta))]
     plt.xticks(x, x_labels)
     plt.show()
     
-    MSE = ols.MSE(ols.z_data, ols.z_model)
-    R2 = ols.R2(ols.z_data, ols.z_model)
+    MSE = reg.MSE(reg.z_data, reg.z_model)
+    R2 = reg.R2(reg.z_data, reg.z_model)
     print("MSE = {}".format(MSE))
     print("R2 = {}".format(R2))
     
 
-def plot_train_test_MSE():
+def plot_train_test_MSE(data,model='OLS',lamb=0, max_degree=9):
     '''
     Exercice 2
     Plot test and train MSE. FOr "nice" plot, axis_n=10, noise_var=0.05, 
     # deg range(1,9)
     '''
     
-    ff = FrankeFunction(axis_n = 10, noise_var = 0.05, plot=False)
     trainMSE = []
     testMSE = []
     x = []
-    for deg in range(1,9):
+    for deg in range(1,max_degree):
         x.append(deg)
-        ols = LinearRegression(ff.x, ff.y, ff.z, degree = deg, split=True, 
-                               test_size =0.3)
-        trainMSE.append( ols.MSE(ols.z_train, ols.z_model_train))
-        testMSE.append( ols.MSE(ols.z_test, ols.z_model))
+        reg = LinearRegression(data[0], data[1], data[2], degree = deg, split=True,
+                           model=model,lamb=lamb)
+        trainMSE.append( reg.MSE(reg.z_train, reg.z_model_train))
+        testMSE.append( reg.MSE(reg.z_test, reg.z_model))
         
     plt.plot(x, testMSE, 'b') 
     plt.plot(x, trainMSE, 'r') 
     plt.legend(["Test MSE", "Train MSE"])
-    plt.title("OLS MSE")
+    plt.title("Model MSE")
     plt.xlabel("Model complexity (degree)")
     plt.ylabel("MSE")
     plt.show()
     
-def plot_bias_var_bootstrap():
+def plot_bias_var_bootstrap(data,model='OLS',lamb=0,bootstrap_nr=100,max_degree=9):
     '''
     Plot the mean of the bias, variance and MSE over samples of the data for 
     The sampling is done using the bootstrap method. 
     '''
-    axis_n = 20 # nr of datapoints in one axis. Total n is axis_n**2
-    bootstrap_nr = 100  #nr of samples
-    max_degree = 10
-    ff = FrankeFunction(axis_n = axis_n, noise_var = 0.05, plot=False)
     MSE, bias, var = [],[],[]
     x = []
     
     for deg in range(1,max_degree):
         x.append(deg)
-        ols = LinearRegression(ff.x, ff.y, ff.z, degree = deg, split=True, 
-                               test_size =0.3)
-        MSE_, bias_, var_ = ols.bootstrap(ols.X_train, ols.X_test, 
-                                          ols.z_train, ols.z_test,
+        reg = LinearRegression(data[0], data[1], data[2], degree = deg, split=True,
+                           model=model,lamb=lamb)
+        MSE_, bias_, var_ = reg.bootstrap(reg.X_train, reg.X_test, 
+                                          reg.z_train, reg.z_test,
                                           bootstrap_nr=bootstrap_nr)
         MSE.append(MSE_)
         bias.append(bias_)
@@ -94,8 +87,130 @@ def plot_bias_var_bootstrap():
     plt.xlabel("Model complexity (degree)")
     plt.show()
     
-if __name__ == '__main__':
-    
-    #plot_train_test_MSE()
-    #plot_conf_interval()
-    plot_bias_var_bootstrap()
+#%%Exercise 1
+ff = FrankeFunction(axis_n = 10, noise_var = 0.05, plot=False)
+ff_data = [ff.x,ff.y,ff.z]
+
+plt.figure()
+plot_train_test_MSE(ff_data)
+#%%Exercise 2
+plt.figure()
+plot_conf_interval(ff_data)
+plot_bias_var_bootstrap(ff_data)
+#%%Exercise 3
+
+#%%Exercise 4
+#MSE
+n_lamb = 8
+lambs = np.logspace(-4,3,n_lamb)
+plt.figure()
+for i in range(n_lamb):
+    plt.subplot(2,4,i+1)
+    plot_train_test_MSE(ff_data,model='Ridge',lamb=lambs[i])
+    plt.title('$\lambda$='+str(lambs[i]))
+
+plt.tight_layout()
+
+#Bootstrap
+n_lamb = 8
+lambs = np.logspace(-4,3,n_lamb)
+plt.figure()
+for i in range(n_lamb):
+    plt.subplot(2,4,i+1)
+    plot_bias_var_bootstrap(ff_data,model='Ridge',lamb=lambs[i])
+    plt.title('$\lambda$='+str(lambs[i]))
+
+plt.tight_layout()
+
+#%%Exercise 5
+
+n_lamb = 8
+lambs = np.logspace(-4,3,n_lamb)
+plt.figure()
+for i in range(n_lamb):
+    plt.subplot(2,4,i+1)
+    plot_train_test_MSE(ff_data,model='Lasso',lamb=lambs[i])
+    plt.title('$\lambda$='+str(lambs[i]))
+
+plt.tight_layout()
+
+#Bootstrap
+n_lamb = 8
+lambs = np.logspace(-4,3,n_lamb)
+plt.figure()
+for i in range(n_lamb):
+    plt.subplot(2,4,i+1)
+    plot_bias_var_bootstrap(ff_data,model='Lasso',lamb=lambs[i])
+    plt.title('$\lambda$='+str(lambs[i]))
+
+plt.tight_layout()
+
+#%%Exercise 6
+from imageio import imread
+# Load the terrain
+N = 100
+terrain1 = imread('E:\\UiO\\Courses\\Machine_learning\\SRTM_data_Norway_1.tif')
+terrain = terrain1[:N,:N]# Show the terrain
+plt.figure()
+plt.title('Terrain over Norway 1')
+plt.imshow(terrain, cmap='gray')
+plt.xlabel('X')
+plt.ylabel('Y')
+plt.show()
+
+
+x = np.linspace(0,1,len(terrain))
+y = np.linspace(0,1,len(terrain.T))
+x_grid, y_grid = np.meshgrid(x,y)
+terrain_data = [x_grid.flatten(),y_grid.flatten(),terrain.flatten()]
+
+reg = LinearRegression(terrain_data[0], terrain_data[1], terrain_data[2], degree = 9, 
+                       split=False, model='OLS',lamb=0)
+
+#%%
+#Terrain data OLS
+plot_train_test_MSE(terrain_data)
+# plot_conf_interval(terrain_data)
+plot_bias_var_bootstrap(terrain_data)
+
+#%%    
+#Terrain data Ridge
+n_lamb = 8
+lambs = np.logspace(-4,3,n_lamb)
+plt.figure()
+for i in range(n_lamb):
+    plt.subplot(2,4,i+1)
+    plot_train_test_MSE(terrain_data,model='Ridge',lamb=lambs[i])
+    plt.title('$\lambda$='+str(lambs[i]))
+plt.tight_layout()
+
+#Bootstrap
+n_lamb = 8
+lambs = np.logspace(-4,3,n_lamb)
+plt.figure()
+for i in range(n_lamb):
+    plt.subplot(2,4,i+1)
+    plot_bias_var_bootstrap(terrain_data,model='Ridge',lamb=lambs[i])
+    plt.title('$\lambda$='+str(lambs[i]))
+plt.tight_layout()
+
+#%%
+#Terrain data Lasso
+n_lamb = 8
+lambs = np.logspace(-4,3,n_lamb)
+plt.figure()
+for i in range(n_lamb):
+    plt.subplot(2,4,i+1)
+    plot_train_test_MSE(terrain_data,model='Lasso',lamb=lambs[i])
+    plt.title('$\lambda$='+str(lambs[i]))
+plt.tight_layout()
+
+#Bootstrap
+n_lamb = 8
+lambs = np.logspace(-4,3,n_lamb)
+plt.figure()
+for i in range(n_lamb):
+    plt.subplot(2,4,i+1)
+    plot_bias_var_bootstrap(terrain_data,model='Lasso',lamb=lambs[i])
+    plt.title('$\lambda$='+str(lambs[i]))
+plt.tight_layout()
