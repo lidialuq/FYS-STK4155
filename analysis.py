@@ -90,10 +90,6 @@ class LinearRegression():
     def __init__(self, x, y, z_data, degree = 3, split = False, test_size = 0.3,
                  model = 'OLS', seed = 42, lamb=0,plot = False):
         
-        # NOTE: This is pretty disorganised, sorry... Initiating an instance  
-        # will automatically calculate beta and z_model for model (only OLS 
-        # implemented) with or without split BUT in order to use bootstrap or 
-        # kfold the method has to be called explicitely (see end of code)
         
         self.degree = degree
         self.x = x
@@ -104,7 +100,6 @@ class LinearRegression():
         
         if split: 
             
-            # Only split currently done, no scaling
             self.X_train, self.X_test, self.z_train, self.z_test = \
             self.split_and_scale(self.X, self.z_data, test_size) 
             
@@ -161,23 +156,6 @@ class LinearRegression():
             X_test[:,i]  = X_test[:,i] - np.mean(X_test[:,i])
         z_train = z_train - np.mean(z_train)
         z_test = z_test - np.mean(z_test)
-        #TODO
-        # Scaling still not working, read slides week 38!
-#        X_train = X_train[:, 1:] #= np.ones(len(X_train[:,0]))
-#        X_test = X_test[:, 1:] #[:,0] = np.ones(len(X_test[:,0]))
-        
-#        scaler = StandardScaler(with_std = False)
-#        scaler.fit(X_train)
-#        X_train = scaler.transform(X_train)
-#        X_test = scaler.transform(X_test)
-        
-#        scaler.fit(z_train.reshape(-1, 1))
-#        z_train = scaler.transform(z_train.reshape(-1, 1))
-#        z_test = scaler.transform(z_test.reshape(-1, 1))
-
-        
-        #z_train = (z_test-np.mean(z_test))
-        #z_train = (z_train-np.mean(z_train))
 
         return X_train, X_test, z_train, z_test
     
@@ -295,6 +273,7 @@ class LinearRegression():
         
         return np.mean((np.mean(z_model) - z)**2)
     
+    
     def var(self, z_model):
         
         var_numpy = np.var(z_model)
@@ -307,6 +286,7 @@ class LinearRegression():
         return np.diagonal( sigma_sq * (np.linalg.pinv(X.T @ X)))
 
     
+    # TODO MSE train not working, else fine
     def bootstrap(self, X_train, X_test, z_train, z_test, bootstrap_nr=None, model='OLS', lamb=0):
         """
         Bootstrap sampling. 
@@ -331,27 +311,42 @@ class LinearRegression():
         MSE_v = []
         bias_v = []
         var_v = []
-        z_model = []
+        MSE_train_v = []
+        z_model = np.empty((len(z_test), bootstrap_nr))
+        z_model_train = np.empty((len(z_train), bootstrap_nr))
+        z_train_matrix = np.empty((len(z_train), bootstrap_nr))
+        z_test_matrix = np.empty((len(z_test), bootstrap_nr))
+        
         for i in range(bootstrap_nr):
             
             tmp_X_train, tmp_z_train = resample(X_train, z_train, replace=True)
+
             if model == "OLS": tmp_beta = self.OLS(tmp_X_train, tmp_z_train)
             if model == "Ridge": tmp_beta = self.Ridge_regression(tmp_X_train, tmp_z_train,lamb)
             if model == "Lasso": tmp_beta = self.Lasso_regression(tmp_X_train, tmp_z_train,lamb)
             
             tmp_z_model = self.predict(X_test, tmp_beta)
-            z_model.append(tmp_z_model)
+            tmp_z_model_train = self.predict(X_train, tmp_beta)
+            z_model[:, i] = tmp_z_model
+            z_model_train[:, i] = tmp_z_model_train
+            z_train_matrix[:, i] = tmp_z_train
+            z_test_matrix[:, i] = z_test
             
-            MSE_v.append( self.MSE(z_test, tmp_z_model))
-            bias_v.append( self.bias(z_test, tmp_z_model))
-            var_v.append( self.var(tmp_z_model))
-             
-    
-        return np.mean(MSE_v), np.mean(bias_v), np.mean(var_v) 
-    
-    
-    
-    # TODO, work in progress!
+            MSE_train_v.append( self.MSE(tmp_z_train, tmp_z_model_train))
+            
+#            MSE_v.append( self.MSE(z_test, tmp_z_model))
+#            bias_v.append( self.bias(z_test, tmp_z_model))
+#            var_v.append( self.var(tmp_z_model))
+        
+        error = np.mean( np.mean((z_test.reshape(-1,1) - z_model)**2, axis=1, keepdims=True) )
+        bias = np.mean( (z_test_matrix - np.mean(z_model, axis=1, keepdims=True))**2 )
+        variance = np.mean( np.var(z_model, axis=1, keepdims=True) )
+        #error_train = np.mean( np.mean((z_train_matrix - z_model_train)**2, axis=1, keepdims=True) )
+#        error_train = np.mean(MSE_train_v)
+#        return np.mean(MSE_v), np.mean(bias_v), np.mean(var_v) 
+        return error, bias, variance, np.mean(MSE_train_v)
+
+
     def kfold(self, X, z, k=5, model="OLS", lamb=0):
         """
         Cross-validation 
@@ -383,8 +378,8 @@ class LinearRegression():
         z_fit = []
 
         MSE_v = []
-        bias_v = []
-        var_v = []
+        MSE_train_v = []        
+
         for i in range(k):
             # test vectors are fold index i, train vectors the rest
             tmp_X_test = X_folds[i]
@@ -397,18 +392,21 @@ class LinearRegression():
             if model == "Ridge": tmp_beta = self.Ridge_regression(tmp_X_train, tmp_z_train,lamb)
             if model == "Lasso": tmp_beta = self.Lasso_regression(tmp_X_train, tmp_z_train,lamb)
         
+        
             z_train.append(tmp_z_train)
             z_model.append((tmp_X_test @ tmp_beta).ravel())
             z_fit.append((tmp_X_train @ tmp_beta).ravel())
 
             tmp_z_model = self.predict(tmp_X_test, tmp_beta)
+            tmp_z_model_train = self.predict(tmp_X_train, tmp_beta)
             z_model.append(tmp_z_model)
             
             MSE_v.append( self.MSE(tmp_z_test, tmp_z_model))
-            bias_v.append( self.bias(tmp_z_test, tmp_z_model))
-            var_v.append( self.var(tmp_z_model))
+            MSE_train_v.append( self.MSE(tmp_z_train, tmp_z_model_train))
+
+            
         
-        return np.mean(MSE_v), np.mean(bias_v), np.mean(var_v)
+        return np.mean(MSE_v), np.mean(MSE_train_v) #np.mean(bias_v), np.mean(var_v)
             
 
 if __name__ == '__main__':
