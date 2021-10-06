@@ -11,7 +11,7 @@ import numpy as np
 from os.path import dirname, abspath, join
 parent_dir = dirname(abspath(__file__))
 plots_dir = join(parent_dir, 'plots')
-print(plots_dir)
+print('PLot dir: {}'.format(plots_dir))
 
 
 def plot_conf_interval(data,model='OLS',lamb=0,noise_var=0.05,axis_n=10,degree=5,
