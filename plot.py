@@ -190,13 +190,15 @@ plot_conf_interval(ff_data, noise_var=noise_var ,axis_n=axis_n)
 
 #%%Exercise 2
 plot_train_test_MSE(ff_data, axis_n = axis_n, noise_var = noise_var, max_degree = 10)
+
 plot_bias_var_bootstrap(ff_data, max_degree=10, bootstrap_nr = 50)
 
 
 #%%Exercise 3
-plot_mse_bootstrap(ff_data, max_degree=10, bootstrap_nr = 50)
-plot_mse_kfolds(ff_data, kfld=10, max_degree=10)
+plot_mse_bootstrap(ff_data, max_degree=12, bootstrap_nr = 500)
 
+plot_mse_kfolds(ff_data, kfld=10, max_degree=12)
+'''
 #%%Exercise 4
 #MSE
 n_lamb = 8
@@ -354,3 +356,4 @@ for i in range(n_lamb):
     plot_bias_var_kfolds(terrain_data,model='Lasso',lamb=lambs[i])
     plt.title('$\lambda$='+str(lambs[i]))
 plt.tight_layout()
+'''

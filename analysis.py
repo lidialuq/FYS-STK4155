@@ -326,25 +326,25 @@ class LinearRegression():
             if model == "Lasso": tmp_beta = self.Lasso_regression(tmp_X_train, tmp_z_train,lamb)
             
             tmp_z_model = self.predict(X_test, tmp_beta)
-            tmp_z_model_train = self.predict(X_train, tmp_beta)
+            tmp_z_model_train = self.predict(tmp_X_train, tmp_beta)
             z_model[:, i] = tmp_z_model
             z_model_train[:, i] = tmp_z_model_train
             z_train_matrix[:, i] = tmp_z_train
             z_test_matrix[:, i] = z_test
             
-            MSE_train_v.append( self.MSE(tmp_z_train, tmp_z_model_train))
+            
             
 #            MSE_v.append( self.MSE(z_test, tmp_z_model))
 #            bias_v.append( self.bias(z_test, tmp_z_model))
 #            var_v.append( self.var(tmp_z_model))
-        
+#            MSE_train_v.append( self.MSE(tmp_z_train, tmp_z_model_train))
         error = np.mean( np.mean((z_test.reshape(-1,1) - z_model)**2, axis=1, keepdims=True) )
         bias = np.mean( (z_test_matrix - np.mean(z_model, axis=1, keepdims=True))**2 )
         variance = np.mean( np.var(z_model, axis=1, keepdims=True) )
-        #error_train = np.mean( np.mean((z_train_matrix - z_model_train)**2, axis=1, keepdims=True) )
+        error_train = np.mean( np.mean((z_train_matrix - z_model_train)**2, axis=1, keepdims=True) )
 #        error_train = np.mean(MSE_train_v)
 #        return np.mean(MSE_v), np.mean(bias_v), np.mean(var_v) 
-        return error, bias, variance, np.mean(MSE_train_v)
+        return error, bias, variance, error_train
 
 
     def kfold(self, X, z, k=5, model="OLS", lamb=0):
