@@ -38,7 +38,11 @@ def plot_conf_interval(data,model='OLS',lamb=0,noise_var=0.05,axis_n=10,degree=5
     plt.show()
     
     if save: 
-        plt.savefig(join(plots_dir, 'b_conf-n={}-noise={}.pdf'.format(axis_n**2, noise_var)))
+        if model=='OLS':
+            plt.savefig(join(plots_dir, 'b_conf-n={}-noise={}.pdf'.format(axis_n**2, noise_var)))
+        else:
+            plt.savefig(join(plots_dir, model+'_'+'b_conf-n={}-noise={}.pdf'.format(axis_n**2, noise_var)))
+
     
     print("MSE = {}".format(MSE))
     print("R2 = {}".format(R2))
@@ -79,8 +83,11 @@ def plot_train_test_MSE(data,model='OLS',lamb=0, max_degree=9, axis_n = 1, boots
     plt.show()
     
     if save: 
-        plt.savefig(join(plots_dir, 'MSEtest_train-n={}-noise={}.pdf'.format(axis_n**2, noise_var)))
-
+        if model=='OLS':
+            plt.savefig(join(plots_dir, 'MSEtest_train-n={}-noise={}.pdf'.format(axis_n**2, noise_var)))
+        else:
+            plt.savefig(join(plots_dir, model+'_'+'MSEtest_train-n={}-noise={}.pdf'.format(axis_n**2, noise_var)))
+            
     
 def plot_bias_var_bootstrap(data,model='OLS',lamb=0,bootstrap_nr=100,max_degree=9,axis_n = 1,
                             noise_var = 'unknown', save = False):
@@ -97,8 +104,8 @@ def plot_bias_var_bootstrap(data,model='OLS',lamb=0,bootstrap_nr=100,max_degree=
         reg2 = LinearRegression(data[0], data[1], data[2], degree = deg, split=True,
                            model=model,lamb=lamb,test_size = 0.3)
         MSE_, bias_, var_, _ = reg2.bootstrap(reg2.X_train, reg2.X_test, 
-                                          reg2.z_train, reg2.z_test,
-                                          bootstrap_nr=bootstrap_nr)
+                                          reg2.z_train, reg2.z_test,model=model,
+                                          bootstrap_nr=bootstrap_nr,lamb=lamb)
         MSE.append(MSE_)
         bias.append(bias_)
         var.append(var_) 
@@ -118,8 +125,10 @@ def plot_bias_var_bootstrap(data,model='OLS',lamb=0,bootstrap_nr=100,max_degree=
     plt.xlabel("Model complexity (degree)")
     plt.show()
     if save:
-        plt.savefig(join(plots_dir, 'biasvar-n={}-noise={}.pdf'.format(axis_n**2, noise_var)))
-
+        if model=='OLS':
+            plt.savefig(join(plots_dir, 'biasvar-n={}-noise={}.pdf'.format(axis_n**2, noise_var)))
+        else:
+            plt.savefig(join(plots_dir, model+'_'+'biasvar-n={}-noise={}.pdf'.format(axis_n**2, noise_var)))
      
 def plot_mse_bootstrap(data,model='OLS',lamb=0,bootstrap_nr=100,max_degree=9,axis_n = 1,
                             noise_var = 'unknown', save = False):
@@ -137,7 +146,7 @@ def plot_mse_bootstrap(data,model='OLS',lamb=0,bootstrap_nr=100,max_degree=9,axi
                            model=model,lamb=lamb,test_size = 0.3)
         MSE_, _, _ , MSE_train_ = reg2.bootstrap(reg2.X_train, reg2.X_test, 
                                           reg2.z_train, reg2.z_test,
-                                          bootstrap_nr=bootstrap_nr)
+                                          bootstrap_nr=bootstrap_nr,model=model,lamb=lamb)
         MSE.append(MSE_)
         MSE_train.append(MSE_train_)
 
@@ -148,8 +157,10 @@ def plot_mse_bootstrap(data,model='OLS',lamb=0,bootstrap_nr=100,max_degree=9,axi
     plt.xlabel("Model complexity (degree)")
     plt.show()
     if save:
-        plt.savefig(join(plots_dir, 'mse_bootstrap-n={}-noise={}.pdf'.format(axis_n**2, noise_var)))       
-        
+        if model=='OLS':
+            plt.savefig(join(plots_dir, 'mse_bootstrap-n={}-noise={}.pdf'.format(axis_n**2, noise_var)))       
+        else:
+            plt.savefig(join(plots_dir, model+'_'+'mse_bootstrap-n={}-noise={}.pdf'.format(axis_n**2, noise_var)))
 
 def plot_mse_kfolds(data,model='OLS',lamb=0,kfld=5,max_degree=9, save=False):
     np.random.seed(seed=42)
@@ -162,7 +173,7 @@ def plot_mse_kfolds(data,model='OLS',lamb=0,kfld=5,max_degree=9, save=False):
                            model=model,lamb=lamb)
         X_des = reg.design_matrix(x=data[0],y=data[1])
         a = LinearRegression(data[0], data[1], data[2],split=True).split_and_scale(X_des, data[2],test_size=0.3)
-        MSE_, MSE_train_ = reg.kfold(X_des, data[2],k=kfld)
+        MSE_, MSE_train_ = reg.kfold(X_des, data[2],k=kfld,model=model)
         MSE.append(MSE_)
         MSE_train.append(MSE_train_)
 
@@ -175,13 +186,16 @@ def plot_mse_kfolds(data,model='OLS',lamb=0,kfld=5,max_degree=9, save=False):
     plt.xlabel("Model complexity (degree)")
     plt.ylabel("MSE")
     if save:
-        plt.savefig(join(plots_dir, 'mse_kfold-n={}-noise={}.pdf'.format(axis_n**2, noise_var)))     
+        if model== 'OLS':
+            plt.savefig(join(plots_dir, 'mse_kfold-n={}-noise={}.pdf'.format(axis_n**2, noise_var)))     
+        else:
+            plt.savefig(join(plots_dir, model+'_'+'mse_kfold-n={}-noise={}.pdf'.format(axis_n**2, noise_var)))     
 
 
 #%%Exercise 1
 axis_n = 15
 noise_var = 0.05
-save = False
+save = True
 ff = FrankeFunction(axis_n = axis_n, noise_var = noise_var, plot=False)
 ff_data = [ff.x,ff.y,ff.z]
 
@@ -195,78 +209,91 @@ plot_bias_var_bootstrap(ff_data, max_degree=10, bootstrap_nr = 50)
 
 
 #%%Exercise 3
-plot_mse_bootstrap(ff_data, max_degree=12, bootstrap_nr = 500)
+plot_mse_bootstrap(ff_data, max_degree=10, bootstrap_nr = 50)
 
-plot_mse_kfolds(ff_data, kfld=10, max_degree=12)
-'''
+plot_mse_kfolds(ff_data, kfld=10, max_degree=10)
+
+
 #%%Exercise 4
 #MSE
 n_lamb = 8
-lambs = np.logspace(-7,0,n_lamb)
-plt.figure()
+lambs = np.logspace(-5,2,n_lamb)
+plt.figure(figsize=(12,6))
 for i in range(n_lamb):
     plt.subplot(2,4,i+1)
-    plot_train_test_MSE(ff_data,model='Ridge',lamb=lambs[i],max_degree=15)
+    plot_train_test_MSE(ff_data,model='Ridge',lamb=lambs[i],max_degree=10)
     plt.title('$\lambda$='+str(lambs[i]))
-
+    plt.ylim(0,0.1)
 plt.tight_layout()
+if save:
+    plt.savefig(join(plots_dir,'Ridge_MSE'+'-n='+str(axis_n**2)+'-noise='+str(noise_var)+'.pdf'))
 
 #Bootstrap
 n_lamb = 8
-lambs = np.logspace(-7,0,n_lamb)
-plt.figure()
+lambs = np.logspace(-5,2,n_lamb)
+plt.figure(figsize=(12,6))
 for i in range(n_lamb):
     plt.subplot(2,4,i+1)
-    plot_bias_var_bootstrap(ff_data,model='Ridge',lamb=lambs[i])
+    plot_bias_var_bootstrap(ff_data,model='Ridge',lamb=lambs[i],max_degree=10)
     plt.title('$\lambda$='+str(lambs[i]))
-
+    plt.ylim(0,0.1)
 plt.tight_layout()
+if save:
+    plt.savefig(join(plots_dir,'Ridge_bootstrap'+'-n='+str(axis_n**2)+'-noise='+str(noise_var)+'.pdf'))
 
 #K-folds
 n_lamb = 8
-lambs = np.logspace(-4,3,n_lamb)
-plt.figure()
+lambs = np.logspace(-5,2,n_lamb)
+plt.figure(figsize=(12,6))
 for i in range(n_lamb):
     plt.subplot(2,4,i+1)
-    plot_bias_var_kfolds(ff_data,model='Ridge',lamb=lambs[i])
+    plot_mse_kfolds(ff_data,model='Ridge',lamb=lambs[i],max_degree=10)
     plt.title('$\lambda$='+str(lambs[i]))
-
+    plt.ylim(0,0.1)
 plt.tight_layout()
+if save:
+    plt.savefig(join(plots_dir,'Ridge_kfolds'+'-n='+str(axis_n**2)+'-noise='+str(noise_var)+'.pdf'))
 
 #%%Exercise 5
-
+#Lasso
+#MSE
 n_lamb = 8
 lambs = np.logspace(-7,0,n_lamb)
-plt.figure()
+plt.figure(figsize=(12,6))
 for i in range(n_lamb):
     plt.subplot(2,4,i+1)
-    plot_train_test_MSE(ff_data,model='Lasso',lamb=lambs[i])
+    plot_train_test_MSE(ff_data,model='Lasso',lamb=lambs[i],max_degree=10)
     plt.title('$\lambda$='+str(lambs[i]))
-
+    plt.ylim(0,0.1)
 plt.tight_layout()
+if save:
+    plt.savefig(join(plots_dir,'Lasso_MSE'+'-n='+str(axis_n**2)+'-noise='+str(noise_var)+'.pdf'))
 
 #Bootstrap
 n_lamb = 8
-lambs = np.logspace(-4,3,n_lamb)
-plt.figure()
+lambs = np.logspace(-7,0,n_lamb)
+plt.figure(figsize=(12,6))
 for i in range(n_lamb):
     plt.subplot(2,4,i+1)
-    plot_bias_var_bootstrap(ff_data,model='Lasso',lamb=lambs[i])
+    plot_bias_var_bootstrap(ff_data,model='Lasso',lamb=lambs[i],max_degree=10)
     plt.title('$\lambda$='+str(lambs[i]))
-
+    plt.ylim(0,0.1)
 plt.tight_layout()
-
+if save:
+    plt.savefig(join(plots_dir,'Lasso_bootstrap'+'-n='+str(axis_n**2)+'-noise='+str(noise_var)+'.pdf'))
 
 #K-folds
 n_lamb = 8
-lambs = np.logspace(-4,3,n_lamb)
-plt.figure()
+lambs = np.logspace(-7,0,n_lamb)
+plt.figure(figsize=(12,6))
 for i in range(n_lamb):
     plt.subplot(2,4,i+1)
-    plot_bias_var_kfolds(ff_data,model='Lasso',lamb=lambs[i])
+    plot_mse_kfolds(ff_data,model='Lasso',lamb=lambs[i],max_degree=10)
     plt.title('$\lambda$='+str(lambs[i]))
-
+    plt.ylim(0,0.1)
 plt.tight_layout()
+if save:
+    plt.savefig(join(plots_dir,'Lasso_kfolds'+'-n='+str(axis_n**2)+'-noise='+str(noise_var)+'.pdf'))
 
 #%%Exercise 6
 from imageio import imread
@@ -287,7 +314,7 @@ y = np.linspace(0,1,len(terrain.T))
 x_grid, y_grid = np.meshgrid(x,y)
 terrain_data = [x_grid.flatten(),y_grid.flatten(),terrain.flatten()]
 
-reg = LinearRegression(terrain_data[0], terrain_data[1], terrain_data[2], degree = 9, 
+reg = LinearRegression(terrain_data[0], terrain_data[1], terrain_data[2], degree = 10, 
                        split=False, model='OLS',lamb=0)
 
 #%%
@@ -296,64 +323,76 @@ plt.figure()
 plot_train_test_MSE(terrain_data)
 # plot_conf_interval(terrain_data)
 plot_bias_var_bootstrap(terrain_data)
-plot_bias_var_kfolds(terrain_data)
+plot_mse_kfolds(terrain_data)
 #%%    
 #Terrain data Ridge
 n_lamb = 8
-lambs = np.logspace(-4,3,n_lamb)
-plt.figure()
+lambs = np.logspace(-5,2,n_lamb)
+plt.figure(figsize=(12,6))
 for i in range(n_lamb):
     plt.subplot(2,4,i+1)
-    plot_train_test_MSE(terrain_data,model='Ridge',lamb=lambs[i])
+    plot_train_test_MSE(terrain_data,model='Ridge',lamb=lambs[i],max_degree=10)
     plt.title('$\lambda$='+str(lambs[i]))
 plt.tight_layout()
+if save:
+    plt.savefig(join(plots_dir,'Ridge_MSE_data'+'-n='+str(axis_n**2)+'-noise='+str(noise_var)+'.pdf'))
+
 
 #Bootstrap
 n_lamb = 8
-lambs = np.logspace(-4,3,n_lamb)
-plt.figure()
+lambs = np.logspace(-5,2,n_lamb)
+plt.figure(figsize=(12,6))
 for i in range(n_lamb):
     plt.subplot(2,4,i+1)
-    plot_bias_var_bootstrap(terrain_data,model='Ridge',lamb=lambs[i])
+    plot_bias_var_bootstrap(terrain_data,model='Ridge',lamb=lambs[i],max_degree=10)
     plt.title('$\lambda$='+str(lambs[i]))
 plt.tight_layout()
+if save:
+    plt.savefig(join(plots_dir,'Ridge_bootstrap_data'+'-n='+str(axis_n**2)+'-noise='+str(noise_var)+'.pdf'))
 
 n_lamb = 8
-lambs = np.logspace(-4,3,n_lamb)
-plt.figure()
+lambs = np.logspace(-5,2,n_lamb)
+plt.figure(figsize=(12,6))
 for i in range(n_lamb):
     plt.subplot(2,4,i+1)
-    plot_bias_var_kfolds(terrain_data,model='Ridge',lamb=lambs[i])
+    plot_mse_kfolds(terrain_data,model='Ridge',lamb=lambs[i],max_degree=10)
     plt.title('$\lambda$='+str(lambs[i]))
 plt.tight_layout()
+if save:
+    plt.savefig(join(plots_dir,'Ridge_kfolds_data'+'-n='+str(axis_n**2)+'-noise='+str(noise_var)+'.pdf'))
 
 #%%
 #Terrain data Lasso
 n_lamb = 8
-lambs = np.logspace(-4,3,n_lamb)
-plt.figure()
+lambs = np.logspace(-7,0,n_lamb)
+plt.figure(figsize=(12,6))
 for i in range(n_lamb):
     plt.subplot(2,4,i+1)
-    plot_train_test_MSE(terrain_data,model='Lasso',lamb=lambs[i])
+    plot_train_test_MSE(terrain_data,model='Lasso',lamb=lambs[i],max_degree=10)
     plt.title('$\lambda$='+str(lambs[i]))
 plt.tight_layout()
+if save:
+    plt.savefig(join(plots_dir,'Lasso_MSE_data'+'-n='+str(axis_n**2)+'-noise='+str(noise_var)+'.pdf'))
 
 #Bootstrap
 n_lamb = 8
-lambs = np.logspace(-4,3,n_lamb)
-plt.figure()
+lambs = np.logspace(-7,0,n_lamb)
+plt.figure(figsize=(12,6))
 for i in range(n_lamb):
     plt.subplot(2,4,i+1)
-    plot_bias_var_bootstrap(terrain_data,model='Lasso',lamb=lambs[i])
+    plot_bias_var_bootstrap(terrain_data,model='Lasso',lamb=lambs[i],max_degree=10)
     plt.title('$\lambda$='+str(lambs[i]))
 plt.tight_layout()
+if save:
+    plt.savefig(join(plots_dir,'Lasso_bootstrap_data'+'-n='+str(axis_n**2)+'-noise='+str(noise_var)+'.pdf'))
 
 n_lamb = 8
-lambs = np.logspace(-4,3,n_lamb)
-plt.figure()
+lambs = np.logspace(-7,0,n_lamb)
+plt.figure(figsize=(12,6))
 for i in range(n_lamb):
     plt.subplot(2,4,i+1)
-    plot_bias_var_kfolds(terrain_data,model='Lasso',lamb=lambs[i])
+    plot_mse_kfolds(terrain_data,model='Lasso',lamb=lambs[i],max_degree=10)
     plt.title('$\lambda$='+str(lambs[i]))
 plt.tight_layout()
-'''
+if save:
+    plt.savefig(join(plots_dir,'Lasso_kfolds_data'+'-n='+str(axis_n**2)+'-noise='+str(noise_var)+'.pdf'))

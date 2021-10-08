@@ -197,7 +197,7 @@ class LinearRegression():
             beta (1d array): regression parameters
         '''
 
-        model = linear_model.Lasso(alpha=self.lamb,max_iter=5000)
+        model = linear_model.Lasso(alpha=self.lamb,max_iter=10000)
         reg = model.fit(X,z)
         beta = reg.coef_
         intercept = reg.intercept_
@@ -316,17 +316,18 @@ class LinearRegression():
         z_model_train = np.empty((len(z_train), bootstrap_nr))
         z_train_matrix = np.empty((len(z_train), bootstrap_nr))
         z_test_matrix = np.empty((len(z_test), bootstrap_nr))
+        tmp_int = 0
         
         for i in range(bootstrap_nr):
             
             tmp_X_train, tmp_z_train = resample(X_train, z_train, replace=True)
 
             if model == "OLS": tmp_beta = self.OLS(tmp_X_train, tmp_z_train)
-            if model == "Ridge": tmp_beta = self.Ridge_regression(tmp_X_train, tmp_z_train,lamb)
-            if model == "Lasso": tmp_beta = self.Lasso_regression(tmp_X_train, tmp_z_train,lamb)
+            if model == "Ridge": tmp_beta = self.Ridge_regression(tmp_X_train, tmp_z_train)
+            if model == "Lasso": tmp_beta, tmp_int = self.Lasso_regression(tmp_X_train, tmp_z_train)
             
-            tmp_z_model = self.predict(X_test, tmp_beta)
-            tmp_z_model_train = self.predict(tmp_X_train, tmp_beta)
+            tmp_z_model = self.predict(X_test, tmp_beta, intercept=tmp_int)
+            tmp_z_model_train = self.predict(tmp_X_train, tmp_beta, intercept=tmp_int)
             z_model[:, i] = tmp_z_model
             z_model_train[:, i] = tmp_z_model_train
             z_train_matrix[:, i] = tmp_z_train
@@ -372,10 +373,6 @@ class LinearRegression():
         # split into k vectors
         X_folds = np.array_split(X, k)
         z_folds = np.array_split(z, k)
-        
-        z_train = []
-        z_model = []
-        z_fit = []
 
         MSE_v = []
         MSE_train_v = []        
@@ -386,20 +383,17 @@ class LinearRegression():
             tmp_z_test = z_folds[i]
             tmp_X_train = np.concatenate(X_folds[:i] + X_folds[i+1:])
             tmp_z_train = np.concatenate(z_folds[:i] + z_folds[i+1:])
+            tmp_int = 0
             
             # regression
             if model == "OLS": tmp_beta = self.OLS(tmp_X_train, tmp_z_train)
-            if model == "Ridge": tmp_beta = self.Ridge_regression(tmp_X_train, tmp_z_train,lamb)
-            if model == "Lasso": tmp_beta = self.Lasso_regression(tmp_X_train, tmp_z_train,lamb)
+            if model == "Ridge": tmp_beta = self.Ridge_regression(tmp_X_train, tmp_z_train)
+            if model == "Lasso": tmp_beta, tmp_int = self.Lasso_regression(tmp_X_train, tmp_z_train)
         
-        
-            z_train.append(tmp_z_train)
-            z_model.append((tmp_X_test @ tmp_beta).ravel())
-            z_fit.append((tmp_X_train @ tmp_beta).ravel())
+    
 
-            tmp_z_model = self.predict(tmp_X_test, tmp_beta)
-            tmp_z_model_train = self.predict(tmp_X_train, tmp_beta)
-            z_model.append(tmp_z_model)
+            tmp_z_model = self.predict(tmp_X_test, tmp_beta,intercept=tmp_int)
+            tmp_z_model_train = self.predict(tmp_X_train, tmp_beta,intercept=tmp_int)
             
             MSE_v.append( self.MSE(tmp_z_test, tmp_z_model))
             MSE_train_v.append( self.MSE(tmp_z_train, tmp_z_model_train))
