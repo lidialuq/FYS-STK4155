@@ -7,12 +7,11 @@ Created on Tue Sep 28 21:58:52 2021
 from analysis import FrankeFunction, LinearRegression
 import matplotlib.pyplot as plt
 import numpy as np
+
 #Get dir for saving plots
 from os.path import dirname, abspath, join
 parent_dir = dirname(abspath(__file__))
 plots_dir = join(parent_dir, 'plots')
-print('PLot dir: {}'.format(plots_dir))
-
 
 def plot_conf_interval(data,model='OLS',lamb=0,noise_var=0.05,axis_n=10,degree=5,
                        save = False):
