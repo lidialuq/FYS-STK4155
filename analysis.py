@@ -7,22 +7,20 @@ Created on Wed Sep 22 15:33:14 2021
 import numpy as np
 from sklearn.model_selection import train_test_split
 from sklearn.utils import resample, shuffle
-from sklearn.preprocessing import StandardScaler
 from sklearn import linear_model
 import matplotlib.pyplot as plt
 from matplotlib import cm
 from matplotlib.ticker import LinearLocator, FormatStrFormatter
-from mpl_toolkits.mplot3d import Axes3D
 np.random.seed(seed=42)
 
 
 class FrankeFunction():
     '''
-    Class with all regression functionality (but statistics should probably be
-    moved to another doc?)
+    Class to sample franke function
     Args:
         axis_n (int): number of datapoint per axis (total n = axis_n^2)
         noise_var (float or int): variance of the noise
+        plot (bool): Plot franke function?
     '''
     def __init__(self, axis_n = 20, noise_var = 0, plot = False):
         # Generate x and y vectors divided equally in a 2d grid
@@ -77,19 +75,21 @@ class FrankeFunction():
 
 class LinearRegression():
     '''
-    Methods needed for linear regression, currently only OLS is implemented
+    Methods needed to preform linear regression (OLS, lasso and Ridge) and 
+    evaluate the model using bootstrap and k-fold
     Args:
         x (1d array): x-coordinates 
         y (1d array): y-coordinates
         z_data (1d array): z vector created by FrankeFunction()
         degree (int): degree of polynomial to use in regression
         split (bool): split the data in train and test
-        model (str): model to use in regression (only 'OLS' implemented)
+        test_size (float): amount of data used in test (between 0 and 1)
+        model (str): model to use in regression ('OLS', 'Ridge', 'Lasso')
         seed: seed to split the data in order to get reproducable results
+        plot (bool): Plot the mode output? (currently not working...)
     '''
     def __init__(self, x, y, z_data, degree = 3, split = False, test_size = 0.3,
                  model = 'OLS', seed = 42, lamb=0,plot = False):
-        
         
         self.degree = degree
         self.x = x
@@ -148,6 +148,9 @@ class LinearRegression():
                 self.z_model = self.predict(self.X, self.beta, intercept=self.intercept)
                 
     def split_and_scale(self, X, z, test_size):
+        '''
+        Split data in train and test, then scale both
+        '''
         X_train, X_test, z_train, z_test = \
         train_test_split(self.X, self.z_data, test_size=test_size, 
                          shuffle=True) 
@@ -301,50 +304,39 @@ class LinearRegression():
             lamb (float): value of lambda for Ridge and Lasso regressions
             
         Returns: 
-            mean MSE (float)
-            mean bias (float)
-            mean variance (float)
+            error (float): test MSE
+            bias (float)
+            variance (float)
+            error_train (float): tain MSE
         """
         
         if not bootstrap_nr: bootstrap_nr = len(z_train)
         
-        MSE_v = []
-        bias_v = []
-        var_v = []
-        MSE_train_v = []
         z_model = np.empty((len(z_test), bootstrap_nr))
         z_model_train = np.empty((len(z_train), bootstrap_nr))
         z_train_matrix = np.empty((len(z_train), bootstrap_nr))
         z_test_matrix = np.empty((len(z_test), bootstrap_nr))
-        tmp_int = 0
         
         for i in range(bootstrap_nr):
             
             tmp_X_train, tmp_z_train = resample(X_train, z_train, replace=True)
 
             if model == "OLS": tmp_beta = self.OLS(tmp_X_train, tmp_z_train)
-            if model == "Ridge": tmp_beta = self.Ridge_regression(tmp_X_train, tmp_z_train)
-            if model == "Lasso": tmp_beta, tmp_int = self.Lasso_regression(tmp_X_train, tmp_z_train)
+            if model == "Ridge": tmp_beta = self.Ridge_regression(tmp_X_train, tmp_z_train,lamb)
+            if model == "Lasso": tmp_beta = self.Lasso_regression(tmp_X_train, tmp_z_train,lamb)
             
-            tmp_z_model = self.predict(X_test, tmp_beta, intercept=tmp_int)
-            tmp_z_model_train = self.predict(tmp_X_train, tmp_beta, intercept=tmp_int)
+            tmp_z_model = self.predict(X_test, tmp_beta)
+            tmp_z_model_train = self.predict(tmp_X_train, tmp_beta)
             z_model[:, i] = tmp_z_model
             z_model_train[:, i] = tmp_z_model_train
             z_train_matrix[:, i] = tmp_z_train
             z_test_matrix[:, i] = z_test
             
-            
-            
-#            MSE_v.append( self.MSE(z_test, tmp_z_model))
-#            bias_v.append( self.bias(z_test, tmp_z_model))
-#            var_v.append( self.var(tmp_z_model))
-#            MSE_train_v.append( self.MSE(tmp_z_train, tmp_z_model_train))
         error = np.mean( np.mean((z_test.reshape(-1,1) - z_model)**2, axis=1, keepdims=True) )
         bias = np.mean( (z_test_matrix - np.mean(z_model, axis=1, keepdims=True))**2 )
         variance = np.mean( np.var(z_model, axis=1, keepdims=True) )
         error_train = np.mean( np.mean((z_train_matrix - z_model_train)**2, axis=1, keepdims=True) )
-#        error_train = np.mean(MSE_train_v)
-#        return np.mean(MSE_v), np.mean(bias_v), np.mean(var_v) 
+
         return error, bias, variance, error_train
 
 
@@ -356,7 +348,7 @@ class LinearRegression():
             z (1d array): z-vector
             k (int): number of folds to divide data into
             model (str): Regression model used. 'OLS', 'Ridge', or 'Lasso' 
-            Defaults ot OLS. 
+            Defaults to OLS. 
             lamb (float): value of lambda for Ridge and Lasso regressions
             
         Returns: 
@@ -383,25 +375,21 @@ class LinearRegression():
             tmp_z_test = z_folds[i]
             tmp_X_train = np.concatenate(X_folds[:i] + X_folds[i+1:])
             tmp_z_train = np.concatenate(z_folds[:i] + z_folds[i+1:])
-            tmp_int = 0
             
             # regression
             if model == "OLS": tmp_beta = self.OLS(tmp_X_train, tmp_z_train)
-            if model == "Ridge": tmp_beta = self.Ridge_regression(tmp_X_train, tmp_z_train)
-            if model == "Lasso": tmp_beta, tmp_int = self.Lasso_regression(tmp_X_train, tmp_z_train)
-        
-    
-
-            tmp_z_model = self.predict(tmp_X_test, tmp_beta,intercept=tmp_int)
-            tmp_z_model_train = self.predict(tmp_X_train, tmp_beta,intercept=tmp_int)
+            if model == "Ridge": tmp_beta = self.Ridge_regression(tmp_X_train, tmp_z_train,lamb)
+            if model == "Lasso": tmp_beta = self.Lasso_regression(tmp_X_train, tmp_z_train,lamb)
+            
+            # predict
+            tmp_z_model = self.predict(tmp_X_test, tmp_beta)
+            tmp_z_model_train = self.predict(tmp_X_train, tmp_beta)
             
             MSE_v.append( self.MSE(tmp_z_test, tmp_z_model))
-            MSE_train_v.append( self.MSE(tmp_z_train, tmp_z_model_train))
-
-            
+            MSE_train_v.append( self.MSE(tmp_z_train, tmp_z_model_train))            
         
-        return np.mean(MSE_v), np.mean(MSE_train_v) #np.mean(bias_v), np.mean(var_v)
-            
+        return np.mean(MSE_v), np.mean(MSE_train_v) 
+    
 
 if __name__ == '__main__':
     
@@ -412,8 +400,3 @@ if __name__ == '__main__':
     #ols.plot(ff.x_2d, ff.y_2d, ols.z_model)
     print(ols.MSE(ols.z_test, ols.z_model))
     
-#    # Exeples of using bootstrap:
-#    # NOTE: split arg in LinearRegression() must be set to True in order to
-#    # use bootstrap() 
-#    MSE_v, bias_v, var_v  = ols.bootstrap(ols.X, ols.z_data,
-#                                            bootstrap_nr=3)

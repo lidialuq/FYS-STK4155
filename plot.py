@@ -64,15 +64,9 @@ def plot_train_test_MSE(data,model='OLS',lamb=0, max_degree=9, axis_n = 1, boots
         x.append(deg)
         reg = LinearRegression(data[0], data[1], data[2], degree = deg, split=True,
                            model=model,lamb=lamb)
-        
-#        MSE_, _, _, MSE_train= reg.bootstrap(reg.X_train, reg.X_test, 
-#                                   reg.z_train, reg.z_test,
-#                                   bootstrap_nr=bootstrap_nr)
 
         trainMSE.append( reg.MSE(reg.z_train, reg.z_model_train))
         testMSE.append( reg.MSE(reg.z_test, reg.z_model))
-#        testMSE.append( MSE_)    
-#        trainMSE.append( MSE_train)
         
     plt.plot(x, testMSE, 'b') 
     plt.plot(x, trainMSE, 'r') 
@@ -90,7 +84,7 @@ def plot_train_test_MSE(data,model='OLS',lamb=0, max_degree=9, axis_n = 1, boots
             
     
 def plot_bias_var_bootstrap(data,model='OLS',lamb=0,bootstrap_nr=100,max_degree=9,axis_n = 1,
-                            noise_var = 'unknown', save = False):
+                            noise_var = 'unknown', save = False, legend = True):
     '''
     Plot the mean of the bias, variance and MSE over samples of the data for 
     The sampling is done using the bootstrap method. 
@@ -111,16 +105,11 @@ def plot_bias_var_bootstrap(data,model='OLS',lamb=0,bootstrap_nr=100,max_degree=
         var.append(var_) 
         bias_plus_var.append(bias_ + var_)
     
-    
-#    print('MSE: {}\n'.format(MSE))
-#    print('bias: {}\n'.format(bias))
-#    print('var: {}\n'.format(var))
-#    print('bias+var: {}\n'.format(bias_plus_var))
     plt.plot(x, MSE, 'b') 
     plt.plot(x, bias, 'r') 
     plt.plot(x, var, 'g') 
-    # plt.yscale('log')
-    plt.legend(["MSE", "bias", "var"])
+    if legend:
+        plt.legend(["MSE", "bias", "var"])
     plt.title("Bias-variance (bootstrap)")
     plt.xlabel("Model complexity (degree)")
     plt.show()
@@ -162,7 +151,8 @@ def plot_mse_bootstrap(data,model='OLS',lamb=0,bootstrap_nr=100,max_degree=9,axi
         else:
             plt.savefig(join(plots_dir, model+'_'+'mse_bootstrap-n={}-noise={}.pdf'.format(axis_n**2, noise_var)))
 
-def plot_mse_kfolds(data,model='OLS',lamb=0,kfld=5,max_degree=9, save=False):
+def plot_mse_kfolds(data,model='OLS',lamb=0,kfld=5,max_degree=9, save=False,
+                    axis_n = 1, noise_var = 'unknown'):
     np.random.seed(seed=42)
     MSE, MSE_train = [],[]
     x = []
@@ -172,13 +162,11 @@ def plot_mse_kfolds(data,model='OLS',lamb=0,kfld=5,max_degree=9, save=False):
         reg = LinearRegression(data[0], data[1], data[2], degree = deg, split=True,
                            model=model,lamb=lamb)
         X_des = reg.design_matrix(x=data[0],y=data[1])
-        a = LinearRegression(data[0], data[1], data[2],split=True).split_and_scale(X_des, data[2],test_size=0.3)
+
         MSE_, MSE_train_ = reg.kfold(X_des, data[2],k=kfld,model=model)
         MSE.append(MSE_)
         MSE_train.append(MSE_train_)
 
-        
-    # plt.yscale('log')
     plt.plot(x, MSE, 'b') 
     plt.plot(x, MSE_train, 'r') 
     plt.legend(["Test MSE", "Train MSE"])
@@ -193,26 +181,59 @@ def plot_mse_kfolds(data,model='OLS',lamb=0,kfld=5,max_degree=9, save=False):
 
 
 #%%Exercise 1
+            
+# Do not save figures
+save = False
+# Make data
 axis_n = 15
 noise_var = 0.05
-save = True
+max_degree = 10
 ff = FrankeFunction(axis_n = axis_n, noise_var = noise_var, plot=False)
 ff_data = [ff.x,ff.y,ff.z]
-
+# Plot regression cofficients and their confidence intervals 
 plot_conf_interval(ff_data, noise_var=noise_var ,axis_n=axis_n) 
 
 
 #%%Exercise 2
-plot_train_test_MSE(ff_data, axis_n = axis_n, noise_var = noise_var, max_degree = 10)
 
-plot_bias_var_bootstrap(ff_data, max_degree=10, bootstrap_nr = 50)
+#Plot test and train MSE 
+plot_train_test_MSE(ff_data, axis_n = axis_n, noise_var = noise_var, max_degree = max_degree, save = save)
+#Plot as function of complexity
+plot_bias_var_bootstrap(ff_data, max_degree=max_degree, bootstrap_nr = 50, axis_n = axis_n, 
+                        noise_var = noise_var, save = save)
+#Plot as function of complexity and datapoints
+axis_n_v = [10,15,20,25]
+max_degree_v = [7,10,13,15]
+plt.figure()
+for i, axis_n in enumerate(axis_n_v):
+    np.random.seed(seed=42)
+    ff = FrankeFunction(axis_n = axis_n, noise_var = 0.05, plot=False)
+    ff_data = [ff.x,ff.y,ff.z]
+    plt.subplot(2,2,i+1)
+    plot_bias_var_bootstrap(ff_data, max_degree=max_degree_v[i], bootstrap_nr = 50, axis_n = axis_n, 
+                        noise_var = noise_var, save = False, legend = False)
+    plt.title('n = {}'.format(axis_n**2))
 
+plt.tight_layout()
+if save:
+    plt.savefig(join(plots_dir, 'n_vs_biasvar.pdf'))
 
 #%%Exercise 3
-plot_mse_bootstrap(ff_data, max_degree=10, bootstrap_nr = 50)
-
-plot_mse_kfolds(ff_data, kfld=10, max_degree=10)
-
+# Make data
+axis_n = 25
+noise_var = 0.05
+max_degree = 30
+ff = FrankeFunction(axis_n = axis_n, noise_var = noise_var, plot=False)
+ff_data = [ff.x,ff.y,ff.z]
+# Plot MSE using bootstrap
+plot_mse_bootstrap(ff_data, max_degree=max_degree, bootstrap_nr = 50, axis_n = axis_n, 
+                        noise_var = noise_var, save = save)
+# Plot MSE using kfold, for different k's
+k_v = [3,5,10,50]
+for i, k in enumerate(k_v):
+    plot_mse_kfolds(ff_data, kfld=k, max_degree=max_degree, axis_n = axis_n, 
+                        noise_var = noise_var, save = save)
+    plt.show()
 
 #%%Exercise 4
 #MSE
