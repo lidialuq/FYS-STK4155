@@ -7,6 +7,9 @@ This is the code for the first project in FYS-STK 4155. There are two scripts:
 
 * plot.py, which contains the functions that call the methods in analysis.py to get the results and make the plots in the project. The code is structured in blocks, the first containing all the functions, and the rest containing the code needed to get the results for each exercice. In order to run, click on each block and press ctrl+enter.
 
+The folder plots contains some selected results.
+
+
 
 
   
