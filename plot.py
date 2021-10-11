@@ -340,10 +340,10 @@ reg = LinearRegression(terrain_data[0], terrain_data[1], terrain_data[2], degree
 #%%
 #Terrain data OLS
 plt.figure()
-plot_train_test_MSE(terrain_data)
+plot_train_test_MSE(terrain_data,max_degree=50)
 # plot_conf_interval(terrain_data)
-plot_bias_var_bootstrap(terrain_data)
-plot_mse_kfolds(terrain_data)
+plot_bias_var_bootstrap(terrain_data,max_degree=25)
+plot_mse_kfolds(terrain_data,max_degree=25)
 #%%    
 #Terrain data Ridge
 n_lamb = 8
@@ -351,7 +351,7 @@ lambs = np.logspace(-5,2,n_lamb)
 plt.figure(figsize=(12,6))
 for i in range(n_lamb):
     plt.subplot(2,4,i+1)
-    plot_train_test_MSE(terrain_data,model='Ridge',lamb=lambs[i],max_degree=10)
+    plot_train_test_MSE(terrain_data,model='Ridge',lamb=lambs[i],max_degree=25)
     plt.title('$\lambda$='+str(lambs[i]))
 plt.tight_layout()
 if save:
@@ -364,7 +364,8 @@ lambs = np.logspace(-5,2,n_lamb)
 plt.figure(figsize=(12,6))
 for i in range(n_lamb):
     plt.subplot(2,4,i+1)
-    plot_bias_var_bootstrap(terrain_data,model='Ridge',lamb=lambs[i],max_degree=10)
+    plot_bias_var_bootstrap(terrain_data,model='Ridge',lamb=lambs[i],max_degree=25)
+    plt.yscale('log')
     plt.title('$\lambda$='+str(lambs[i]))
 plt.tight_layout()
 if save:
@@ -375,7 +376,8 @@ lambs = np.logspace(-5,2,n_lamb)
 plt.figure(figsize=(12,6))
 for i in range(n_lamb):
     plt.subplot(2,4,i+1)
-    plot_mse_kfolds(terrain_data,model='Ridge',lamb=lambs[i],max_degree=10)
+    plot_mse_kfolds(terrain_data,model='Ridge',lamb=lambs[i],max_degree=25)
+    plt.yscale('log')
     plt.title('$\lambda$='+str(lambs[i]))
 plt.tight_layout()
 if save:
