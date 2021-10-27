@@ -24,7 +24,7 @@ class FFNN:
              ):
         
         # Values that define structure of neural network
-        self.n_datapoints = n_datapoints
+        self.n_datapoints = None
         self.n_output_neurons = n_output_neurons
         self.n_input_neurons = n_input_neurons
         self.hidden_layers_struct = hidden_layers_struct
@@ -35,9 +35,9 @@ class FFNN:
         
         # Create starting weights and biases
         self.w = self._initialize_weights()
+        #print('w[0].shape at initialization = {}'.format(self.w[0].shape))
         self.b = self._initialize_biases()
-        self.a = self._initialize_activations()
-        self.z = self._initialize_activations()
+
 		
 
 
@@ -47,18 +47,23 @@ class FFNN:
         Returns a list containing 2d nd.nparrays with the weights for each layer
         '''
         w = []
-        # Weights of input neurons
-        w.append( np.random.randn(self.n_input_neurons, 
-                                  self.hidden_layers_struct[0]))
-        
-        # Weights of neurons between hidden layers (if only 1 hidden layer, 
-        # nothing is appended)
-        for i in range(0, self.n_hidden_layers-1):
-            w.append( np.random.randn(self.hidden_layers_struct[i], 
-                                         self.hidden_layers_struct[i+1]))
-        # Weights of last hidden layer
-        w.append( np.random.randn(self.hidden_layers_struct[-1], 
-                                  self.n_output_neurons))
+        # if no hidden layer
+        if self.n_hidden_layers == 0:
+            w.append( np.random.randn(self.n_input_neurons, 
+                                      self.n_output_neurons))
+        else:
+            # Weights of input neurons
+            w.append( np.random.randn(self.n_input_neurons, 
+                                      self.hidden_layers_struct[0]))
+            
+            # Weights of neurons between hidden layers (if only 1 hidden layer, 
+            # nothing is appended)
+            for i in range(0, self.n_hidden_layers-1):
+                w.append( np.random.randn(self.hidden_layers_struct[i], 
+                                             self.hidden_layers_struct[i+1]))
+            # Weights of last hidden layer
+            w.append( np.random.randn(self.hidden_layers_struct[-1], 
+                                      self.n_output_neurons))
         
         return w
     
@@ -79,7 +84,7 @@ class FFNN:
     def _initialize_activations(self):
         '''
         Initializes activations. First layer (first element in list) is set 
-        equal to the input data, all other layers initialized to None
+        equal to the input data, all other layers initialized to null
         '''
         a = []
         # activations for hidden layers
@@ -87,29 +92,43 @@ class FFNN:
             a.append( np.zeros((self.n_datapoints, self.hidden_layers_struct[i])))
         # activations for output layer
         a.append( np.zeros((self.n_datapoints, self.n_output_neurons)))
-        
+        #print(len(a), a[0].shape)
         return a
         
     def _feed_forward(self):
         """
         Calculate activations for all layers.  
         """
-    
-        # Calculate activations for hidden layers. First hidden layer activation
-        # is calculated from the input data
-        for i in range(self.n_hidden_layers):
-            if i == 0:
-                self.z[i] = self.X_matrix @ self.w[i] + self.b[i]
-                self.a[i] = self.activation( self.z[i] )
-            else:
-                self.z[i] = self.a[i-1] @ self.w[i] + self.b[i] 
-                self.a[i] = self.activation( self.z[i] ) 
+        self.z = self._initialize_activations()
+        self.a = self._initialize_activations()
+        #print('a[-1].shape at _feed_forward  = {}'.format(self.a[-1].shape))
+        #print('len(a) at _feed_forward  = {}'.format(len(self.a)))
 
-			
+        
+        if self.n_hidden_layers == 0:
+            #print('w[0].shape at _feed_forward  = {}'.format(self.w[0].shape))
+            #print('b[0].shape at _feed_forward  = {}'.format(self.b[0].shape))
+
+            self.z[0] = self.X_matrix @ self.w[0] + self.b[0]
+            self.a[0] = self.activation( self.z[0] )
+
+        else: 
+            # Calculate activations for hidden layers. First hidden layer activation
+            # is calculated from the input data
+            for i in range(self.n_hidden_layers):
+                if i == 0:
+                    self.z[i] = self.X_matrix @ self.w[i] + self.b[i]
+                    self.a[i] = self.activation( self.z[i] )
+                else:
+                    self.z[i] = self.a[i-1] @ self.w[i] + self.b[i] 
+                    self.a[i] = self.activation( self.z[i] ) 
+                    
+    		# Calculate activations for output layer (the network outputs)
+            self.z[-1] = self.a[-2] @ self.w[-1] + self.b[-1] 
+            self.a[-1] = self.output_activation( self.z[-1] ) 
             
-		# Calculate activations for output layer (the network outputs)
-        self.z[-1] = self.a[-2] @ self.w[-1] + self.b[-1] 
-        self.a[-1] = self.output_activation( self.z[-1] ) 
+        #print('a[-1].shape at _feed_forward END  = {}'.format(self.a[-1].shape))
+        #print('len(a) at _feed_forward END  = {}'.format(len(self.a)))
 
         return self.a[-1] # maybe not needed
 
@@ -144,8 +163,8 @@ class FFNN:
             grad_b = np.sum(delta, axis=0) / self.n_datapoints
             
             # update weights and biases
-            self.w[i] = self.w[i] - (eta * grad_w)
-            self.b[i] = self.b[i] - (eta * grad_b)
+            self.w[i] = self.w[i] + (eta * grad_w)
+            self.b[i] = self.b[i] + (eta * grad_b)
 	
     
     def predict(self, X_test_matrix):
@@ -154,7 +173,15 @@ class FFNN:
         '''
         
         self.X_matrix = X_test_matrix
+        self.n_datapoints = X_test_matrix.shape[0]
+
         self._feed_forward()
+        #print('a[-1].shape = {}'.format(self.a[-1].shape))
+        #print('a[0].shape = {}'.format(self.a[0].shape))
+        #print('len(a) = {}'.format(len(self.a)))
+
+
+
 
         return self.a[-1]
 
@@ -166,6 +193,7 @@ class FFNN:
         '''
         self.X_matrix = X_matrix    # (n_datapoints x n_features)
         self.y_matrix = y_matrix    # (n_datapoints x n_output_neurons)
+        self.n_datapoints = X_matrix.shape[0]
         
         if info: 
             print('Training network for {} epochs...'.format(epochs))

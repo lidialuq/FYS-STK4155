@@ -17,7 +17,7 @@ class MeanSquareError:
         return np.mean(0.5*(y - y_predicted)**2)
 
     def gradient(self, y, y_predicted):
-        return y - y_predicted
+        return (y - y_predicted)
 
 class BinaryCrossEntropy:
     def __str__(self):
