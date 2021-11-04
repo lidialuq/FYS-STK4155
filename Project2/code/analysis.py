@@ -3,6 +3,8 @@
 Created on Wed Oct 20 22:30:13 2021
 
 @author: lidia
+
+This file should 
 """
 
 import numpy as np
@@ -16,7 +18,7 @@ from ffnn import FFNN
 from data.franke_function import get_ff_data
 from data.breast_cancer import get_breastcancer
 
-'''
+
 #%%
 sklearn = False
 X_train, X_test, z_train, z_test = get_ff_data()
@@ -46,7 +48,7 @@ if sklearn:
     
     clf.fit(X_train, z_train)
     clf.predict(X_test)
-'''
+
 #%%
 X_train, X_test, z_train, z_test = get_breastcancer()
 
