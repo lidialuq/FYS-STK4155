@@ -24,7 +24,17 @@ class Sigmoid:
         return 'Sigmoid'
     
     def __call__(self, x):
-        return 1/(1 + np.exp(-x))
+        
+        # Same as 1/(1 + np.exp(-x)) but more numerically stable
+        def sig_pos(x):
+            z = np.exp(-x)
+            return 1 / (1 + z)
+        def sig_neg(x):
+            z = np.exp(x)
+            return z / (1 + z)
+            
+        return np.where(x>=0, sig_pos(x), sig_neg(x))
+        #return 1/(1 + np.exp(-x))
 
     def gradient(self, x):
         return np.exp(-x)/(1 + np.exp(-x))**2

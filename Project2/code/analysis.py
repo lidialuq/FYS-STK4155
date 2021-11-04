@@ -13,25 +13,13 @@ from helpers.activations import Linear, Sigmoid, ReLu, LeakyReLu, Tanh
 from helpers.cost_functions import MeanSquareError, BinaryCrossEntropy
 from ffnn import FFNN
 
-from data.franke_function import FrankeFunction
+from data.franke_function import get_ff_data
+from data.breast_cancer import get_breastcancer
 
+'''
+#%%
 sklearn = False
-
-# create data
-ff = FrankeFunction(axis_n = 10, noise_var = 0, plot = False)
-X = ff.design_matrix(ff.x, ff.y, degree = 5)
-
-# split data and normalize by removing mean
-X_train, X_test, z_train, z_test = \
-    train_test_split(X, ff.z, test_size = 0.3, shuffle = True)
-#for i in range(X_train.shape[1]):
-#    X_train[:,i] = X_train[:,i] - np.mean(X_train[:,i])
-#    X_test[:,i]  = X_test[:,i] - np.mean(X_test[:,i])
-#z_train = z_train - np.mean(z_train)
-#z_test = z_test - np.mean(z_test)
-
-z_train = np.expand_dims(z_train, 1)
-z_test = np.expand_dims(z_test, 1)
+X_train, X_test, z_train, z_test = get_ff_data()
 
 if not sklearn:
     
@@ -39,14 +27,16 @@ if not sklearn:
     nn = FFNN(n_datapoints = X_train.shape[0],
               n_input_neurons = X_train.shape[1],
               n_output_neurons = 1, 
-              hidden_layers_struct = [], 
-              activation = Linear(),   
+              hidden_layers_struct = [50,50], 
+              activation = ReLu(),   
               output_activation = Linear(),
               cost_function = MeanSquareError(),
+              initialize = 'xavier',
               )
     
     # Train and predict
-    nn.train(X_train, z_train, epochs = 10, eta = 0.01, info = True)
+    nn.train(X_train, z_train, epochs = 8000, eta = 0.01, lmbda = 0.01, 
+             minibatch_n = 10, info = True)
     z_predicted = nn.predict(X_test)
     print(MeanSquareError()(z_predicted, z_test))
 
@@ -56,3 +46,23 @@ if sklearn:
     
     clf.fit(X_train, z_train)
     clf.predict(X_test)
+'''
+#%%
+X_train, X_test, z_train, z_test = get_breastcancer()
+
+# Initialize neural network
+nn = FFNN(n_datapoints = X_train.shape[0],
+          n_input_neurons = X_train.shape[1],
+          n_output_neurons = 1, 
+          hidden_layers_struct = [50], 
+          activation = Sigmoid(),   
+          output_activation = Sigmoid(),
+          cost_function = BinaryCrossEntropy(),
+          initialize = 'xavier',
+          )
+
+# Train and predict
+nn.train(X_train, z_train, epochs = 100, eta = 0.0001, lmbda = 0.1, 
+         minibatch_n = 10, info = True)
+z_predicted = nn.predict(X_test)
+print(BinaryCrossEntropy()(z_predicted, z_test))

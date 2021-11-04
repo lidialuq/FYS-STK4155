@@ -7,6 +7,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import cm
 from matplotlib.ticker import LinearLocator, FormatStrFormatter
+from sklearn.model_selection import train_test_split
+
 np.random.seed(seed=42) 
 
 class FrankeFunction():
@@ -83,3 +85,26 @@ class FrankeFunction():
                     X.append(x**x_exp * y**y_exp)
         X = (np.array(X).T).squeeze()
         return X
+    
+def get_ff_data():
+    
+    # create data
+    ff = FrankeFunction(axis_n = 20, noise_var = 0.1, plot = False)
+    X = ff.design_matrix(ff.x, ff.y, degree = 3)
+    
+    # split data 
+    X_train, X_test, z_train, z_test = \
+        train_test_split(X, ff.z, test_size = 0.3, shuffle = True)
+    
+    # normalize by removing mean
+    for i in range(X_train.shape[1]):
+        X_train[:,i] = X_train[:,i] - np.mean(X_train[:,i])
+        X_test[:,i]  = X_test[:,i] - np.mean(X_test[:,i])
+    z_train = z_train - np.mean(z_train)
+    z_test = z_test - np.mean(z_test)
+    
+    # change shape from (datapoints,) to (datapoints,1)
+    z_train = np.expand_dims(z_train, 1)
+    z_test = np.expand_dims(z_test, 1)
+    return X_train, X_test, z_train, z_test
+
