@@ -26,8 +26,6 @@ class MeanSquareError_ridge:
     def __call__(self, y, y_predicted):
         return 
 
-
-
 class BinaryCrossEntropy:
     def __str__(self):
         return 'Binary Cross Entropy'

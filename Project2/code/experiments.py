@@ -4,23 +4,23 @@ Created on Sun Oct 31 17:40:21 2021
 
 @author: lidia
 """
+from pathlib import Path
+from os.path import join
+
+import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn import metrics
 from sklearn.model_selection import train_test_split
 from sklearn.neural_network import MLPRegressor
 
-import numpy as np
 from data.franke_function import get_ff_data
 from data.breast_cancer import get_breastcancer
-
 from helpers.activations import Linear, Sigmoid, ReLu, LeakyReLu, Tanh
 from helpers.cost_functions import MeanSquareError, BinaryCrossEntropy, R2, Accuracy
 from ffnn import FFNN
 
-#Get dir for saving plots
-from os.path import dirname, abspath, join
-from pathlib import Path
+#Get dir to save plots
 parent_dir = Path(__file__).parents[1]
 plots_dir = join(parent_dir, 'figures')
 
@@ -28,7 +28,7 @@ def grid_search_ff(lmbda_vals = None, eta_vals = None, plot = True,
                    save = False):
     
     # Set parameters, this will define neural net and filename to save plot
-    epochs = 100
+    epochs = 1000
     hidden_layers_struct= [50]
     
     # Load data
@@ -39,9 +39,7 @@ def grid_search_ff(lmbda_vals = None, eta_vals = None, plot = True,
     lmbda_vals = np.logspace(-6,1,8)
     
     # Initialize arrays to save scores
-    mse_all = np.zeros((len(eta_vals), len(lmbda_vals)))
     r2_all = np.zeros((len(eta_vals), len(lmbda_vals)))
-    mse_all_train = np.zeros((len(eta_vals), len(lmbda_vals)))
     r2_all_train = np.zeros((len(eta_vals), len(lmbda_vals)))
     
     # Grid search
@@ -54,7 +52,7 @@ def grid_search_ff(lmbda_vals = None, eta_vals = None, plot = True,
               n_input_neurons = X_train.shape[1],
               n_output_neurons = 1, 
               hidden_layers_struct = hidden_layers_struct, 
-              activation = Sigmoid(),   
+              activation = ReLu(),   
               output_activation = Linear(),
               cost_function = MeanSquareError(),
               initialize = 'xavier',
@@ -68,31 +66,29 @@ def grid_search_ff(lmbda_vals = None, eta_vals = None, plot = True,
             
             # Calculate scores. If one of the inputs to calculate the score 
             # is nan, set score to nan too
-            try:
-                mse_all[i,j] = MeanSquareError()(z_test, z_predicted)
-            except ValueError:
-                mse_all[i,j] = np.nan
             
-            try:
+            if nn.ended_in_nan == False:
                 r2_all[i,j] = metrics.r2_score(z_test, z_predicted)
-            except ValueError: 
-                r2_all[i,j] = np.nan
-                
-            try:
-                 mse_all_train[i,j] = MeanSquareError()(z_train, z_train_predicted)
-            except ValueError:
-                mse_all_train[i,j] = np.nan
-                
-            try:
                 r2_all_train[i,j] = metrics.r2_score(z_train, z_train_predicted)
-            except ValueError: 
+            else: 
+                r2_all[i,j] = np.nan
                 r2_all_train[i,j] = np.nan
+                
+#            try:
+#                r2_all[i,j] = metrics.r2_score(z_test, z_predicted)
+#            except ValueError: 
+#                r2_all[i,j] = np.nan
+#                
+#            try:
+#                r2_all_train[i,j] = metrics.r2_score(z_train, z_train_predicted)
+#            except ValueError: 
+#                r2_all_train[i,j] = np.nan
                 
             
     if plot:
-        # Makes axis show right
-        lmbda_ticks = ["{:.1e}".format(i) for i in lmbda_vals]
-        eta_ticks = ["{}".format(round(i,6)) for i in eta_vals]
+        # Makes axis show right (:.1e if you want only scientific notation)
+        lmbda_ticks = ["{}".format(i) for i in lmbda_vals]
+        eta_ticks = ["{}".format(i) for i in eta_vals]
         
         # Plot test R2
         sns.set()
@@ -104,7 +100,7 @@ def grid_search_ff(lmbda_vals = None, eta_vals = None, plot = True,
         plt.ylabel('Learning rate $\\eta$')
         plt.xlabel('Regularization coefficient $\\lambda$')
         if save: 
-            name = 'test_R2_{}_{}.png'.format(epochs, hidden_layers_struct)
+            name = 'test_R2_{}_{}relu.png'.format(epochs, hidden_layers_struct)
             plt.savefig(join(plots_dir, 'franke_function', name))
         plt.show()
         
@@ -118,7 +114,7 @@ def grid_search_ff(lmbda_vals = None, eta_vals = None, plot = True,
         plt.ylabel('Learning rate $\\eta$')
         plt.xlabel('Regularization coefficient $\\lambda$')
         if save: 
-            name = 'train_R2_{}_{}.png'.format(epochs, hidden_layers_struct)
+            name = 'train_R2_{}_{}relu.png'.format(epochs, hidden_layers_struct)
             plt.savefig(join(plots_dir, 'franke_function', name))
         plt.show()
             
@@ -256,6 +252,6 @@ def run_breast_once():
     
 if __name__ == "__main__":
     
-    #grid_search_ff(lmbda_vals = None, eta_vals = None, plot = True, save = True)
+    grid_search_ff(lmbda_vals = None, eta_vals = None, plot = True, save = True)
     #grid_search_breast(lmbda_vals = None, eta_vals = None, plot = True, save = True)
 
