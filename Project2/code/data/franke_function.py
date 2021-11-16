@@ -86,11 +86,12 @@ class FrankeFunction():
         X = (np.array(X).T).squeeze()
         return X
     
-def get_ff_data():
+def get_ff_data(axis_n = 20, degree=3):
+    np.random.seed(42)
     
     # create data
-    ff = FrankeFunction(axis_n = 20, noise_var = 0.1, plot = False)
-    X = ff.design_matrix(ff.x, ff.y, degree = 3)
+    ff = FrankeFunction(axis_n = axis_n, noise_var = 0.1, plot = False)
+    X = ff.design_matrix(ff.x, ff.y, degree = degree)
     
     # split data 
     X_train, X_test, z_train, z_test = \

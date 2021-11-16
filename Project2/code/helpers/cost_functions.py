@@ -19,13 +19,6 @@ class MeanSquareError:
     def gradient(self, y, y_predicted):
         return (y_predicted - y)
 
-class MeanSquareError_ridge:
-    def __str__(self):
-        return 'Mean Squared Error Ridge'
-
-    def __call__(self, y, y_predicted):
-        return 
-
 class BinaryCrossEntropy:
     def __str__(self):
         return 'Binary Cross Entropy'
@@ -50,5 +43,6 @@ class Accuracy:
         return 'Accuracy'
     
     def __call__(self, y, y_predicted):
-        y_predicted = np.where(y_predicted >= 0.5, 1, 0)
-        return np.mean(y == y_predicted)
+        y_predicted = np.around(y_predicted)
+        accuracy = np.sum(np.around(y) == y_predicted, axis = 0)
+        return accuracy / y.shape[0]

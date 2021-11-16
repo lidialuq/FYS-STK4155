@@ -19,11 +19,11 @@ def get_breastcancer():
     
     # Load dataset and get X and y matrixes
     dataset = load_breast_cancer()
-    # print(dataset.DESCR) # Print the data set description
+    #print(dataset.DESCR) # Print the data set description
     df = pd.DataFrame(dataset.data, columns = [dataset.feature_names])
-    df['target'] = pd.Series( data = dataset.target, index = df.index)
+    df_target = pd.Series( data = dataset.target, index = df.index)
     X = df.iloc[0:, 0:30].to_numpy()
-    y = df['target'].to_numpy()
+    y = df_target.to_numpy()
     
     # Split data
     X_train, X_test, y_train, y_test = \
