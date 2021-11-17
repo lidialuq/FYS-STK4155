@@ -24,8 +24,11 @@ def main(activation, sgd_meth, grad_meth, SEED = 42):
     N = int(20)
     deg = 3
 
-    X_train, X_test, z_train, z_test = get_ff_data(axis_n = N, degree = deg) # calls ff(axis_n = 20, noise_var = 0.1, plot = False)
-    
+    #X_train, X_test, z_train, z_test = get_ff_data(axis_n = N, degree = deg) # calls ff(axis_n = 20, noise_var = 0.1, plot = False)
+    X_train, X_test, z_train, z_test = get_breastcancer()
+    z_train = np.expand_dims(z_train, axis = 1)
+    z_test = np.expand_dims(z_test, axis = 1)
+
     etas = np.logspace(-4,1,10)
     lmds = np.logspace(-6,1,1)
     if grad_meth == 'ridge':
@@ -141,14 +144,10 @@ def find_vals(name, score):
     print(f'{score}, eta_idx, lmd, minibatch_n, gamma or beta1, (beta2)')
     return file[idx]
 
-def bc():
-    X_train, X_test, z_train, z_test = get_breastcancer()
-    print(X_train.shape, X_test.shape, z_train.shape)
-
 
 if __name__ == '__main__':
     #filename = main(activation = Linear(), sgd_meth = 'momentum', grad_meth = 'ordinary')
-    folder = 'data/optimization_sgd_files/' # run from 'code' directiory
+    """folder = 'data/optimization_sgd_files/' # run from 'code' directiory
     #filename = folder+'momentum_values_Linear_ordinary'
     files = os.listdir(folder)
 
@@ -158,23 +157,20 @@ if __name__ == '__main__':
         elif 'Sigmoid' in filename:
             idx = find_vals(f'{folder}{filename}', Accuracy())
         print(idx)
+    """
+    # ALL FILES
+    #main(activation = Linear(), sgd_meth = 'vanilla', grad_meth = 'ordinary')
+    #main(activation = Linear(), sgd_meth = 'vanilla', grad_meth = 'ridge')
+    #main(activation = Sigmoid(), sgd_meth = 'vanilla', grad_meth = 'ordinary')
+    #main(activation = Sigmoid(), sgd_meth = 'vanilla', grad_meth = 'ridge')
 
-    bc()
-    
-
-    """# ALL FILES
-    main(activation = Linear(), sgd_meth = 'vanilla', grad_meth = 'ordinary')
-    main(activation = Linear(), sgd_meth = 'vanilla', grad_meth = 'ridge')
-    main(activation = Sigmoid(), sgd_meth = 'vanilla', grad_meth = 'ordinary')
-    main(activation = Sigmoid(), sgd_meth = 'vanilla', grad_meth = 'ridge')
-
-    main(activation = Linear(), sgd_meth = 'momentum', grad_meth = 'ordinary')
-    main(activation = Linear(), sgd_meth = 'momentum', grad_meth = 'ridge')
+    #main(activation = Linear(), sgd_meth = 'momentum', grad_meth = 'ordinary')
+    #main(activation = Linear(), sgd_meth = 'momentum', grad_meth = 'ridge')
     main(activation = Sigmoid(), sgd_meth = 'momentum', grad_meth = 'ordinary')
     main(activation = Sigmoid(), sgd_meth = 'momentum', grad_meth = 'ridge')
 
-    main(activation = Linear(), sgd_meth = 'Adam', grad_meth = 'ordinary')
-    main(activation = Linear(), sgd_meth = 'Adam', grad_meth = 'ridge')
+    #main(activation = Linear(), sgd_meth = 'Adam', grad_meth = 'ordinary')
+    #main(activation = Linear(), sgd_meth = 'Adam', grad_meth = 'ridge')
     main(activation = Sigmoid(), sgd_meth = 'Adam', grad_meth = 'ordinary')
     main(activation = Sigmoid(), sgd_meth = 'Adam', grad_meth = 'ridge')
-    """
+    

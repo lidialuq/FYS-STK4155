@@ -24,14 +24,14 @@ def main():
     start = time.process_time()
 
 
-    N = int(20)
-    deg = 3
-    ff = FrankeFunction(axis_n = N, noise_var = 0.1, plot = False)
+    #N = int(20)
+    #deg = 3
+    #ff = FrankeFunction(axis_n = N, noise_var = 0.1, plot = False)
 
-    ols = LinearRegression(ff.x, ff.y, ff.z, degree = deg, split=True, test_size = 0.3, plot=False)
-    print('ols',score(ols.z_test, ols.z_model))
+    #ols = LinearRegression(ff.x, ff.y, ff.z, degree = deg, split=True, test_size = 0.3, plot=False)
+    #print('ols',score(ols.z_test, ols.z_model))
 
-    print('time', time.process_time() - start, 's')
+    #print('time', time.process_time() - start, 's')
 
     #X_train, X_test, z_train, z_test = get_ff_data(axis_n = N, degree = deg) # calls ff(axis_n = 20, noise_var = 0.1, plot = False)
     X_train, X_test, z_train, z_test = get_breastcancer()
@@ -51,7 +51,7 @@ def main():
 
     sgd(sgd_method='vanilla')
     zvan_pred = (sgd.predict())
-    print('sgd_method Mean Squared Error')
+    print(f'sgd_method {score}')
     print('vanilla',score(z_test, act_func(X_test @ sgd.theta)))
     print('vanilla',score(z_train, zvan_pred))
     print('time', time.process_time() - start, 's')
@@ -69,7 +69,8 @@ def main():
     zAdam_pred = sgd.predict()
     print('Adam',score(z_test, act_func(X_test @ sgd.theta)))
     print('Adam',score(z_train, zAdam_pred))
-    print(z_train.T == np.around(zAdam_pred.T))
+    #print(np.sort(zAdam_pred.T))
+    #print(z_train.T == np.around(zAdam_pred.T))
     print('time', time.process_time() - start, 's')
         
     """

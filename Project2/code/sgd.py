@@ -6,22 +6,24 @@ from helpers.activations import Sigmoid
 
 # see lecture notes week 39 for info
 class SGD:
-	def __init__(self, activation, grad_method, X, z, eta, lmd, epochs, minibatch_n, tol = 1e-10):
+	def __init__(self, activation, grad_method, X, z, eta, lmd, epochs, minibatch_n, tol = 1e-7):
 		self.activation = activation
 		self.grad_method = grad_method
 		self.X = X # design matrix
 		self.z = z # True parameters
 		self.eta = eta # learning rate
-		self.lmd = lmd
+		self.lmd = lmd # Ridge hyperparameter
 		self.epochs = epochs # number of epochs 
-		self.minibatch_n = minibatch_n # number of mini-batches
+		self.minibatch_n = minibatch_n # number of mini-batches, 
+		# where 0 = DG, 1 = SGD, N = SGD with mini-batches of size N
 		self.tol = tol # tolerance for cost-functions, and Adam
 		# if self.tol < 1e-9, Adam takes a lot more time
 
 		self.theta = None # predicted parameters
 
 		# for SGD with momentum
-		self.gamma = None # momentum parameter E [0,1]
+		self.gamma = None # exponential decay factor E [0,1], 
+		# determines the relative contribution of the current gradient and earlier gradients to the weight change
 		
 		# for Adam
 		self.beta1 = None # forgetting factor for gradient
@@ -29,12 +31,7 @@ class SGD:
 		
 		
 		self.N = X.shape[0] 
-		self.P = X.shape[1] # number of parameters
-
-		# idk really, from learning_schedule week 39 notes
-		self.t1 = self.epochs # end time 
-		self.t0 = self.t1/10 # start time
-		
+		self.P = X.shape[1] # number of parameters/lenght of self.theta
 		
 
 	def __call__(self, sgd_method):
@@ -48,7 +45,8 @@ class SGD:
 			self.__Adam()
 
 	def __init_th(self):
-		np.random.seed(42) # easy way to guarantee same values for self.theta
+		np.random.seed(42) # easy way to guarantee same values for self.theta,
+		# NECCESSARY IF RUNNING 'optimize_sgd_params.py'
 		return np.random.normal(0,1, size=(self.P,1))
 
 	# time-based decay
@@ -65,7 +63,6 @@ class SGD:
 		elif self.grad_method == 'ridge':
 			L2 = self.lmd/self.N * np.sum(self.theta**2)
 			cost = 1/self.N * (self.activation(self.X @ self.theta) - self.z).T @ (self.activation(self.X @ self.theta) - self.z) + L2
-		#print(np.mean(cost))
 		return np.mean(cost)
 
 	def __gradient__(self):
@@ -85,7 +82,6 @@ class SGD:
 		fin = False
 		cost0 = 0
 		self.theta = self.__init_th()
-		print(self.theta.shape)
 		for epoch in range(self.epochs):
 			for i in range(self.N):
 				gradients = self.__gradient__()
