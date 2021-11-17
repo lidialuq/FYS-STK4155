@@ -1,4 +1,9 @@
+# Grid search over SGD parameters, it's ugly, but works.
+
 import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib.patches import Rectangle
+import seaborn as sns
 import os
 
 from sgd import SGD
@@ -23,8 +28,8 @@ def main(activation, sgd_meth, grad_meth, SEED = 42):
     
     N = int(20)
     deg = 3
-
     #X_train, X_test, z_train, z_test = get_ff_data(axis_n = N, degree = deg) # calls ff(axis_n = 20, noise_var = 0.1, plot = False)
+    
     X_train, X_test, z_train, z_test = get_breastcancer()
     z_train = np.expand_dims(z_train, axis = 1)
     z_test = np.expand_dims(z_test, axis = 1)
@@ -128,16 +133,66 @@ def main(activation, sgd_meth, grad_meth, SEED = 42):
     return name
 
 
-def find_vals(name, score):
+def find_vals(name, score, plot = False):
     file = np.load(name)
-
     if str(score) == 'Mean Squared Error':
-        val_min = np.where(np.abs(file[:,0]) < 1, file[:,0], 2)
-        idx = np.where(val_min == np.min(val_min))
+        val = np.where(np.abs(file[:,0]) < 1, file[:,0], np.nan)
+        idx = np.where(val == np.nanmin(val))
     
     elif str(score) == 'Accuracy':
-        val_max = np.where(np.abs(file[:,0]) > 1, -2, file[:,0])
-        idx = np.argwhere(val_max == np.nanmax(val_max))
+        val = np.where(np.abs(file[:,0]) > 1, np.nan, file[:,0])
+        idx = np.where(val == np.nanmax(val))
+
+    if plot:
+        etas = np.linspace(-4,1,10)
+        lmds = np.linspace(-6,1,5)
+        etas = np.around(etas,3)
+
+        mbs = np.linspace(0,20,5)
+        gammas = np.linspace(0.001,0.9999,6)
+        beta1s = np.linspace(0.9, 0.999, 5)
+        beta2s = np.linspace(0.99,0.9999, 5)
+        
+        
+
+        file_arr = np.copy(file)
+        file_arr[:,0] = val
+        
+        for i in range(3,file_arr.shape[1]):
+            # finds the most occuring parameters, if there are more than one option
+            count = np.bincount(file[idx,i].astype('int').ravel())
+            count_idx = np.argmax(count)
+           
+            
+            best_idxs = np.where(file_arr[:,i] == count_idx)
+            file_arr = file_arr[best_idxs]
+            
+        heat = np.zeros((5,10))
+        
+        # eta
+        # as k//5 in loop
+
+        # lmd
+        j = 0
+        for k in range(file_arr.shape[0]):
+            heat[j,k//5] = file_arr[k,0]
+            j += 1
+            if j == 5:
+                j = 0
+
+        if str(score) == 'Mean Squared Error':
+            rect_val = np.flip(np.unravel_index(np.nanargmin(heat,axis=None), heat.shape))
+    
+        elif str(score) == 'Accuracy':
+            rect_val = np.flip(np.unravel_index(np.nanargmax(heat,axis=None), heat.shape))
+        
+        ax = sns.heatmap(heat, annot = True, fmt = '.4f', xticklabels=etas, yticklabels=lmds, vmax=np.nanmax(heat), vmin = np.nanmin(heat))
+        ax.add_patch(Rectangle(rect_val,1,1,fill=False, edgecolor='b',lw=2))
+        plt.xlabel(r'$\log_{10}\ \eta$')
+        plt.ylabel(r'$\log_{10}\ \lambda$')
+        plt.title(f'{score}' + r' heatmap of $\eta$ and $\lambda$' + f', data from {name}')
+        plt.show()
+
 
     print('Done')
     print(f'File with name: {name}, and possible index parameters')
@@ -145,20 +200,22 @@ def find_vals(name, score):
     return file[idx]
 
 
+
 if __name__ == '__main__':
     #filename = main(activation = Linear(), sgd_meth = 'momentum', grad_meth = 'ordinary')
-    """folder = 'data/optimization_sgd_files/' # run from 'code' directiory
+    folder = 'data/optimization_sgd_files/' # run from 'code' directiory
     #filename = folder+'momentum_values_Linear_ordinary'
     files = os.listdir(folder)
 
     for filename in files:
         if 'Linear' in filename:
-            idx = find_vals(f'{folder}{filename}', MeanSquareError())
+            idx = find_vals(f'{folder}{filename}', MeanSquareError(),plot=False)
         elif 'Sigmoid' in filename:
-            idx = find_vals(f'{folder}{filename}', Accuracy())
+            idx = find_vals(f'{folder}{filename}', Accuracy(), plot = False)
         print(idx)
-    """
-    # ALL FILES
+    
+    
+    # ALL FILES, REMEMBER TO SPECIFY LEARNING SET, breast_cancer (Logistic/Sigmoid) or Franke (Linear) (X_train ... etc)
     #main(activation = Linear(), sgd_meth = 'vanilla', grad_meth = 'ordinary')
     #main(activation = Linear(), sgd_meth = 'vanilla', grad_meth = 'ridge')
     #main(activation = Sigmoid(), sgd_meth = 'vanilla', grad_meth = 'ordinary')
@@ -166,11 +223,11 @@ if __name__ == '__main__':
 
     #main(activation = Linear(), sgd_meth = 'momentum', grad_meth = 'ordinary')
     #main(activation = Linear(), sgd_meth = 'momentum', grad_meth = 'ridge')
-    main(activation = Sigmoid(), sgd_meth = 'momentum', grad_meth = 'ordinary')
-    main(activation = Sigmoid(), sgd_meth = 'momentum', grad_meth = 'ridge')
+    #main(activation = Sigmoid(), sgd_meth = 'momentum', grad_meth = 'ordinary')
+    #main(activation = Sigmoid(), sgd_meth = 'momentum', grad_meth = 'ridge')
 
     #main(activation = Linear(), sgd_meth = 'Adam', grad_meth = 'ordinary')
     #main(activation = Linear(), sgd_meth = 'Adam', grad_meth = 'ridge')
-    main(activation = Sigmoid(), sgd_meth = 'Adam', grad_meth = 'ordinary')
-    main(activation = Sigmoid(), sgd_meth = 'Adam', grad_meth = 'ridge')
+    #main(activation = Sigmoid(), sgd_meth = 'Adam', grad_meth = 'ordinary')
+    #main(activation = Sigmoid(), sgd_meth = 'Adam', grad_meth = 'ridge')
     
