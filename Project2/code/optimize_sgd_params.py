@@ -36,10 +36,11 @@ def main(activation, sgd_meth, grad_meth, SEED = 42):
 
     etas = np.logspace(-4,1,10)
     lmds = np.logspace(-6,1,1)
+    
     if grad_meth == 'ridge':
         lmds = np.logspace(-6,1,5)
 
-    mbs = np.linspace(0,20,5)
+    mbs = np.linspace(1,20,5)
     
 
     def vanilla(etas, lmds):
@@ -56,8 +57,7 @@ def main(activation, sgd_meth, grad_meth, SEED = 42):
                     sgd.minibatch_n = int(mbs[k])
 
                     sgd(sgd_method='vanilla')
-                    zvan_pred = sgd.predict()
-                    values[num] = score(z_train, zvan_pred), i, j, k
+                    values[num] = score(z_test, sgd.predict(X_test)), i, j, k
                     
                     num = num + 1
 
@@ -66,6 +66,9 @@ def main(activation, sgd_meth, grad_meth, SEED = 42):
         return name
     
     gammas = np.linspace(0.001,0.9999,6)
+    # best gamma
+    gammas = np.array([gammas[4]])
+    
 
     def momentum(etas, lmds, gammas):
         values = np.empty(shape=(etas.shape[0]*lmds.shape[0]*mbs.shape[0]*gammas.shape[0],5))
@@ -83,8 +86,7 @@ def main(activation, sgd_meth, grad_meth, SEED = 42):
                         sgd.gamma = gammas[l]
 
                         sgd(sgd_method='momentum')
-                        zvan_pred = sgd.predict()
-                        values[num] = score(z_train, zvan_pred), i, j, k, l
+                        values[num] = score(z_test, sgd.predict(X_test)), i, j, k, l
 
                         num = num + 1
         
@@ -93,7 +95,11 @@ def main(activation, sgd_meth, grad_meth, SEED = 42):
         return name
 
     beta1s = np.linspace(0.9, 0.999, 5)
+    # best beta1
+    beta1s = np.array([beta1s[1]])
     beta2s = np.linspace(0.99,0.9999, 5)
+    # best beta2
+    beta2s = np.array([beta2s[2]])
 
     def Adam(etas, lmds, beta1s, beta2s):
         values = np.empty(shape=(etas.shape[0]*lmds.shape[0]*mbs.shape[0]*beta1s.shape[0]*beta2s.shape[0], 6))
@@ -113,8 +119,7 @@ def main(activation, sgd_meth, grad_meth, SEED = 42):
                             sgd.beta2 = beta2s[m]
 
                             sgd(sgd_method='Adam')
-                            zvan_pred = sgd.predict()
-                            values[num] = score(z_train, zvan_pred), i, j, k, l, m
+                            values[num] = score(z_test, sgd.predict(X_test)), i, j, k, l, m
 
                             num = num + 1
         
@@ -143,12 +148,12 @@ def find_vals(name, score, plot = False):
         val = np.where(np.abs(file[:,0]) > 1, np.nan, file[:,0])
         idx = np.where(val == np.nanmax(val))
 
-    if plot:
+    if plot and 'test' in name:
         etas = np.linspace(-4,1,10)
         lmds = np.linspace(-6,1,5)
-        etas = np.around(etas,3)
+        etas = np.around(etas,2)
 
-        mbs = np.linspace(0,20,5)
+        mbs = np.linspace(1,20,5)
         gammas = np.linspace(0.001,0.9999,6)
         beta1s = np.linspace(0.9, 0.999, 5)
         beta2s = np.linspace(0.99,0.9999, 5)
@@ -158,17 +163,18 @@ def find_vals(name, score, plot = False):
         file_arr = np.copy(file)
         file_arr[:,0] = val
         
+        idxs = [] # adding indexes in order mbs, gammas/beta1, beta2
         for i in range(3,file_arr.shape[1]):
             # finds the most occuring parameters, if there are more than one option
             count = np.bincount(file[idx,i].astype('int').ravel())
             count_idx = np.argmax(count)
-           
+            idxs.append(count_idx)
             
             best_idxs = np.where(file_arr[:,i] == count_idx)
             file_arr = file_arr[best_idxs]
-            
+
         heat = np.zeros((5,10))
-        
+
         # eta
         # as k//5 in loop
 
@@ -185,14 +191,28 @@ def find_vals(name, score, plot = False):
     
         elif str(score) == 'Accuracy':
             rect_val = np.flip(np.unravel_index(np.nanargmax(heat,axis=None), heat.shape))
+    
         
-        ax = sns.heatmap(heat, annot = True, fmt = '.4f', xticklabels=etas, yticklabels=lmds, vmax=np.nanmax(heat), vmin = np.nanmin(heat))
+
+        ax = sns.heatmap(heat, annot = True, fmt = '.4f', xticklabels=etas, yticklabels=lmds, vmax=np.nanmax(heat), vmin = np.nanmin(heat), cmap='viridis')
         ax.add_patch(Rectangle(rect_val,1,1,fill=False, edgecolor='b',lw=2))
         plt.xlabel(r'$\log_{10}\ \eta$')
         plt.ylabel(r'$\log_{10}\ \lambda$')
-        plt.title(f'{score}' + r' heatmap of $\eta$ and $\lambda$' + f', data from {name}')
-        plt.show()
+        if 'vanilla' in name:    
+            plt.title(f'{score}' + r' heatmap of $\eta$ and $\lambda$' + f', data from {name}, minibatch_n = {int(mbs[idxs][0])} ')
+        elif 'momentum' in name:
+            plt.title(f'{score}' + r' heatmap of $\eta$ and $\lambda$' + f', data from {name},\
+            minibatch_n = {int(mbs[idxs][0])}, gamma = {gammas[idxs][1]}')
+        elif 'Adam' in name:
+            plt.title(f'{score}' + r' heatmap of $\eta$ and $\lambda$' + f', data from {name},\
+             minibatch_n = {int(mbs[idxs][0])}, beta1 = {beta1s[idxs][1]}, beta2 = {beta2s[idxs][1]}')
 
+        # Python 3.9 needed
+        #name.removeprefix(f'{folder}')
+        #name.removesuffix('.npy')
+        #plt.savefig(f'{name}.pdf')
+
+        plt.show()
 
     print('Done')
     print(f'File with name: {name}, and possible index parameters')
@@ -204,16 +224,17 @@ def find_vals(name, score, plot = False):
 if __name__ == '__main__':
     #filename = main(activation = Linear(), sgd_meth = 'momentum', grad_meth = 'ordinary')
     folder = 'data/optimization_sgd_files/' # run from 'code' directiory
+    #folder2 = 'a/'
     #filename = folder+'momentum_values_Linear_ordinary'
     files = os.listdir(folder)
 
     for filename in files:
         if 'Linear' in filename:
-            idx = find_vals(f'{folder}{filename}', MeanSquareError(),plot=False)
+            idx = find_vals(f'{folder}{filename}', MeanSquareError(),plot = False)
         elif 'Sigmoid' in filename:
-            idx = find_vals(f'{folder}{filename}', Accuracy(), plot = False)
-        print(idx)
-    
+            idx = find_vals(f'{folder}{filename}', Accuracy(), plot = True)
+        if 'test' in filename:
+            print(idx)
     
     # ALL FILES, REMEMBER TO SPECIFY LEARNING SET, breast_cancer (Logistic/Sigmoid) or Franke (Linear) (X_train ... etc)
     #main(activation = Linear(), sgd_meth = 'vanilla', grad_meth = 'ordinary')

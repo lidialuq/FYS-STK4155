@@ -27,7 +27,8 @@ def get_breastcancer():
     
     # Split data
     X_train, X_test, y_train, y_test = \
-    train_test_split(X, y, test_size = 0.3, random_state = 42)
+    train_test_split(X, y, test_size = 0.3, random_state = False)
+    # SET random_state = False if performing random test, otherwise = 42
     
     # Calculate mean and std of features  
     X_train_mean = np.mean(X_train, axis=0)
