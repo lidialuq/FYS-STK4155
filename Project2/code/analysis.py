@@ -3,8 +3,6 @@
 Created on Wed Oct 20 22:30:13 2021
 
 @author: lidia
-
-This file should 
 """
 
 import numpy as np
@@ -19,14 +17,21 @@ from data.franke_function import get_ff_data
 from data.breast_cancer import get_breastcancer
 
 
-#%%
-sklearn = False
-X_train, X_test, z_train, z_test = get_ff_data()
-
-if not sklearn:
+main():
+    """
+    Tests the test and train accuracy of the FFNN for the predefined inputs. Uses
+    both Franke function and the Wisconsin Breast Cancer Data. Set sklarn to True
+    to compare to the sklearn implementation.
+    """
     
-    # Initialize neural network
-    nn = FFNN(n_datapoints = X_train.shape[0],
+    sklearn = False
+
+    # Create test train split of the data Franke function
+    X_train, X_test, z_train, z_test = get_ff_data()
+
+    if not sklearn:   
+        # Initialize neural network
+        nn = FFNN(n_datapoints = X_train.shape[0],
               n_input_neurons = X_train.shape[1],
               n_output_neurons = 1, 
               hidden_layers_struct = [50,50], 
@@ -36,24 +41,26 @@ if not sklearn:
               initialize = 'xavier',
               )
     
-    # Train and predict
-    nn.train(X_train, z_train, epochs = 8000, eta = 0.01, lmbda = 0.01, 
+        # Train and predict
+        nn.train(X_train, z_train, epochs = 8000, eta = 0.01, lmbda = 0.01, 
              minibatch_n = 10, info = True)
-    z_predicted = nn.predict(X_test)
-    print(MeanSquareError()(z_predicted, z_test))
+        z_predicted = nn.predict(X_test)
+        print(MeanSquareError()(z_predicted, z_test))
 
-if sklearn:
-    clf = MLPRegressor(solver='sgd', activation = 'identity', learning_rate_init = 0.0001,
+    if sklearn:
+        # Initialize solver
+        clf = MLPRegressor(solver='sgd', activation = 'identity', learning_rate_init = 0.0001,
                         hidden_layer_sizes=(), random_state=42, verbose = True)
     
-    clf.fit(X_train, z_train)
-    clf.predict(X_test)
+        # Fit and predict
+        clf.fit(X_train, z_train)
+        clf.predict(X_test)
 
-#%%
-X_train, X_test, z_train, z_test = get_breastcancer()
+    # Create test train split of the data breaks cancer
+    X_train, X_test, z_train, z_test = get_breastcancer()
 
-# Initialize neural network
-nn = FFNN(n_datapoints = X_train.shape[0],
+    # Initialize neural network
+    nn = FFNN(n_datapoints = X_train.shape[0],
           n_input_neurons = X_train.shape[1],
           n_output_neurons = 1, 
           hidden_layers_struct = [50], 
@@ -63,8 +70,12 @@ nn = FFNN(n_datapoints = X_train.shape[0],
           initialize = 'xavier',
           )
 
-# Train and predict
-nn.train(X_train, z_train, epochs = 100, eta = 0.0001, lmbda = 0.1, 
+    # Train and predict
+    nn.train(X_train, z_train, epochs = 100, eta = 0.0001, lmbda = 0.1, 
          minibatch_n = 10, info = True)
-z_predicted = nn.predict(X_test)
-print(BinaryCrossEntropy()(z_predicted, z_test))
+    z_predicted = nn.predict(X_test)
+    print(BinaryCrossEntropy()(z_predicted, z_test))
+
+
+if __name__ == '__main__':
+    main()

@@ -26,6 +26,20 @@ plots_dir = join(parent_dir, 'figures')
 
 def grid_search_ff(lmbda_vals = None, eta_vals = None, plot = True, 
                    save = False):
+    """
+    Performs the grid search of the test and train accuracy of the FFNN for the given 
+    lambda inputs. Uses the Franke Fuction.
+
+    Args:
+        lmbda_vals (float):     Optional. Array of regularization parameters lambda.
+                                Default None.
+        eta_vals (float):       Optional. Array of learning rate parameters eta.
+                                Default None.
+        plot (boolean):         Optional. True if an output plot should be produced.
+                                Default True.
+        save (boolean):         Optional. True if an output plot should be saved. 
+                                plot must be True to create the output. Default False.
+    """
     
     # Set parameters, this will define neural net and filename to save plot
     epochs = 1000
@@ -117,9 +131,24 @@ def grid_search_ff(lmbda_vals = None, eta_vals = None, plot = True,
             name = 'train_R2_{}_{}relu.png'.format(epochs, hidden_layers_struct)
             plt.savefig(join(plots_dir, 'franke_function', name))
         plt.show()
+
             
 def grid_search_breast(lmbda_vals = None, eta_vals = None, plot = True, 
                        save = False):
+    """
+    Performs the grid search of the test and train accuracy of the FFNN for the given 
+    lambda inputs. Uses the Wisconsin Breast Cancer Data.
+
+    Args:
+        lmbda_vals (float):     Optional. Array of regularization parameters lambda.
+                                Default None.
+        eta_vals (float):       Optional. Array of learning rate parameters eta.
+                                Default None.
+        plot (boolean):         Optional. True if an output plot should be produced.
+                                Default True.
+        save (boolean):         Optional. True if an output plot should be saved. 
+                                plot must be True to create the output. Default False.
+    """
     
     # Set parameters, this will define neural net and filename to save plot
     epochs = 10
@@ -200,6 +229,13 @@ def grid_search_breast(lmbda_vals = None, eta_vals = None, plot = True,
         
     
 def run_ff_once(sklearn = False):
+    """
+    Performs a single estimation of FFNN for the predefined inputs using sklearn or handmade solution.
+    Uses the Franke Function.
+
+    Args:
+        sklearn (boolean):      Optional. True if sklear should be used. Default False.
+    """
 
     X_train, X_test, z_train, z_test = get_ff_data()
     
@@ -231,6 +267,13 @@ def run_ff_once(sklearn = False):
         
         
 def run_breast_once():
+    """
+    Performs a single estimation of FFNN for the predefined inputs using sklearn or handmade solution.
+    Uses the Wisconsin Breast Cancer Data.
+
+    Args:
+        sklearn (boolean):      Optional. True if sklear should be used. Default False.
+    """
     X_train, X_test, z_train, z_test = get_breastcancer()
     
     # Initialize neural network
