@@ -1,6 +1,6 @@
 ## Project Description
 
-The aim of this project was to compare common regression methods with the MLP Feedforward Neural Network when applied to a regression problem, as well as to compare logistic regression method with the MLP Feedforward Neural Network when applied to a classification problem. See the report for detailed explanationof the scope of this project. 
+The aim of this project was to compare common regression methods with the MLP Feedforward Neural Network when applied to a regression problem, as well as to compare logistic regression method with the MLP Feedforward Neural Network when applied to a classification problem. See the report for detailed explanation of the scope of this project. 
 
 ## Prerequisites
 
@@ -27,14 +27,21 @@ requirements.txt
 code/
 |- data/
 	|- optimization_sgd_files/
-			|-
+	|- breast_cancer.py
+	|- franke_function.py
 |- helpers/
-	|- breast_cancer/
-		|-
-	|- franke_function/
-		|-
-|- 
+	|- activations.py
+	|- cost_functions.py
+|- analysis.py
+|- analysis_proj1.py
+|- ffnn.py
+|- experiments.py
+|- main.py
+|- optimize_sgd_params.py
+|- sgd.py
 figures/
+|- breast_cancer/
+|- franke_function/
 ```
 
 ## Usage
