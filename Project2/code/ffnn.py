@@ -2,10 +2,6 @@
 """
 Created on Mon Oct 18 11:19:37 2021
 @author: lidialuq
-
-A flexible Feed Forward Neural Network class that can be used for both
-regression and classification problems, with a choice of activation functions
-and cost functions.
 """
  
 import math
@@ -13,6 +9,37 @@ import numpy as np
 from sklearn.utils import resample, shuffle
 
 class FFNN:
+"""
+A flexible Feed Forward Neural Network class that can be used for both
+regression and classification problems, with a choice of activation functions
+and cost functions.
+
+Attributes:
+    n_datapoins (int):          Number of datapoints. Default None.
+    n_input_neurons (int):      Amount of input neurons
+    n_output_neurons (int):     Amount of output neurons
+    hidden_layers_struct (list):List of hidden layers.
+    activation (function):      Activation function on the hidden layers.
+                                Example: Linear(), Sigmoid(), ReLu(), LeakyReLu()
+    output_activation (function): Activation function on the output layers.
+                                Example: Linear(), Sigmoid(), ReLu(), LeakyReLu()
+    cost_function (function):   Applied cost function. Example: MeanSquareError(), 
+                                BinaryCrossEntropy()
+    initialize (str):           'normal' or 'xavier', defines inintial weights
+
+Methods:
+    predict():
+        '''
+        Use _feed_forward() method to make predictions for X_test_matrix
+        '''
+    train():
+        '''
+        Train the network using stochastic gradient descent with mini-batches
+        of size minibatch_n. Thelearning rate is eta and the network is trained
+        for n epochs. X_matrix is the training data, and y_matrix the target 
+        data.
+        '''
+"""
 
     def __init__(self, 
              n_datapoints: int,
@@ -49,7 +76,11 @@ class FFNN:
         Initialize weights with either a normal distribution (mean 0, var 1)
         or the normalized xavier distribution (helps with exploding gradients)
         Returns a list containing 2d nd.nparrays with the weights for each layer
+
+        Returns:
+            w (list):         List of weights for each layer
         '''
+
         def xavier_initialization(n, m): 
             array = np.random.uniform( -(np.sqrt(6)/np.sqrt(n + m)), 
                                       np.sqrt(6)/np.sqrt(n + m), 
@@ -85,7 +116,11 @@ class FFNN:
         '''
         Initialize biases to zero
         Returns a list containing 1d np.ndarrays with the biases for each layer 
+
+        Returns:
+            w (list):         List of biases for each layer
         '''
+
         b = []
         # biases for hidden layers
         for i in range(self.n_hidden_layers):
@@ -99,7 +134,11 @@ class FFNN:
         '''
         Initializes activations. First layer (first element in list) is set 
         equal to the input data, all other layers initialized to null
+
+        Returns:
+            a (list):         List of activations for each layer
         '''
+
         a = []
         # activations for hidden layers
         for i in range(self.n_hidden_layers):
@@ -110,7 +149,10 @@ class FFNN:
         
     def _feed_forward(self):
         """
-        Calculate activations for all layers.  
+        Calculate activations for all layers.
+
+        Returns:
+            a(float):       Value of the output layer activation function           
         """
         self.z = self._initialize_activations()
         self.a = self._initialize_activations()
@@ -179,6 +221,9 @@ class FFNN:
     def predict(self, X_test_matrix):
         '''
         Use _feed_forward() method to make predictions for X_test_matrix
+
+        Returns:
+            a(float):       Value of the output layer activation function  
         '''
         # Set input data to predict
         self.X_matrix = X_test_matrix
