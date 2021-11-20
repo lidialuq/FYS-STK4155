@@ -26,6 +26,19 @@ plots_dir = join(parent_dir, 'figures')
 
 def grid_search_ff(lmbda_vals = None, eta_vals = None, plot = True, 
                    save = False):
+    """
+    Performs the grid search of the test and train accuracy of the FFNN for the given 
+    lambda inputs. Uses the Franke Fuction.
+    Args:
+        lmbda_vals (float):     Optional. Array of regularization parameters lambda.
+                                Default None.
+        eta_vals (float):       Optional. Array of learning rate parameters eta.
+                                Default None.
+        plot (boolean):         Optional. True if an output plot should be produced.
+                                Default True.
+        save (boolean):         Optional. True if an output plot should be saved. 
+                                plot must be True to create the output. Default False.
+    """
     
     # Set parameters, this will define neural net and filename to save plot
     epochs = 1000
@@ -35,8 +48,6 @@ def grid_search_ff(lmbda_vals = None, eta_vals = None, plot = True,
     X_train, X_test, z_train, z_test = get_ff_data()
 
     # Define learning rates and regularization parameters to try
-#    eta_vals = np.logspace(-5,-1,5)    
-#    lmbda_vals = np.logspace(-6,-1,6)
     eta_vals = np.logspace(-3,-1,3)    
     lmbda_vals = np.logspace(-3,-1,3)
     
@@ -112,87 +123,18 @@ def grid_search_ff(lmbda_vals = None, eta_vals = None, plot = True,
            
     return r2_all
 
-def grid_search_breast(lmbda_vals = None, eta_vals = None, plot = True, 
-                       save = False):
-    
-    # Set parameters, this will define neural net and filename to save plot
-    epochs = 10
-    hidden_layers_struct= [100,100]
-    
-    # Load data
-    X_train, X_test, z_train, z_test = get_breastcancer()
-    
-    # Define learning rates and regularization parameters to try
-    eta_vals = np.logspace(-5,-1,5)    
-    lmbda_vals = np.logspace(-6,1,8)
-  
-    # Initialize arrays to save scores
-    accuracy_all = np.zeros((len(eta_vals), len(lmbda_vals)))
-    accuracy_train = np.zeros((len(eta_vals), len(lmbda_vals)))
-    
-    # Grid search
-    for i, eta in enumerate(eta_vals):
-        for j, lmbda in enumerate(lmbda_vals):
-            print('Training for learning rate {} and lambda {}'.format(eta,lmbda))
-            
-            # Train neural net
-            nn = FFNN(n_datapoints = X_train.shape[0],
-              n_input_neurons = X_train.shape[1],
-              n_output_neurons = 1, 
-              hidden_layers_struct = hidden_layers_struct, 
-              activation = ReLu(),   
-              output_activation = Sigmoid(),
-              cost_function = BinaryCrossEntropy(),
-              initialize = 'xavier',
-              )
-            nn.train(X_train, z_train, epochs = epochs, eta = eta, lmbda = lmbda, 
-                     minibatch_n = 10, info = False)
-                        
-            # Predict from train and test data
-            z_train_predicted = nn.predict(X_train)
-            z_predicted = nn.predict(X_test) 
-            
-            # Calculate scores. If one of the inputs to calculate the score 
-            # is nan, set score to nan too
-            if nn.ended_in_nan == False:
-                accuracy_all[i,j] = Accuracy()(z_test, z_predicted)
-                accuracy_train[i,j] = Accuracy()(z_train, z_train_predicted)
-            else:
-                accuracy_all[i,j] = np.nan
-                accuracy_train[i,j] = np.nan
-                
-    if plot:
-        # Makes axis show right
-        lmbda_ticks = ["{}".format(i) for i in lmbda_vals]
-        eta_ticks = ["{}".format(i) for i in eta_vals]
-        
-        # Plot test accuracy
-        sns.set()
-        sns.heatmap(accuracy_all, cmap="viridis", annot=True, fmt='.2f',
-                    xticklabels = lmbda_ticks, yticklabels = eta_ticks)
-        plt.title("Test accuracy")
-        plt.ylabel('Learning rate $\\eta$')
-        plt.xlabel('Regularization coefficient $\\lambda$')
-        if save: 
-            name = 'test_accuracy_{}_{}.png'.format(epochs, hidden_layers_struct)
-            plt.savefig(join(plots_dir, 'breast_cancer', name))
-        plt.show()
-        
-        # Plot train accuracy
-        sns.set()
-        sns.heatmap(accuracy_train, annot=True, cmap="viridis", fmt='.2f',
-                    xticklabels = lmbda_ticks, yticklabels = eta_ticks)
-        b, t = plt.ylim() 
-        plt.ylim(b, t)
-        plt.title("Train accuracy")
-        plt.ylabel('Learning rate $\\eta$')
-        plt.xlabel('Regularization coefficient $\\lambda$')
-        if save: 
-            name = 'train_accuracy_{}_{}.png'.format(epochs, hidden_layers_struct)
-            plt.savefig(join(plots_dir, 'breast_cancer', name))
-        plt.show()
 
 def grid_search_ff_activations(save = False, plot = True):
+    """
+    Performs the grid search of the test and train R2 of the FFNN over learning 
+    rates and three activation functions, Sigmoid, ReLu and LeakyReLu. Uses the 
+    Franke Fuction.
+    Args:
+        plot (boolean):         Optional. True if an output plot should be produced.
+                                Default True.
+        save (boolean):         Optional. True if an output plot should be saved. 
+                                plot must be True to create the output. Default False.
+    """
     
     # Set parameters, this will define neural net and filename to save plot
     epochs = 1000
@@ -260,6 +202,15 @@ def grid_search_ff_activations(save = False, plot = True):
         plt.show()
         
 def grid_search_ff_hiddenlayers(save = False, plot = True):
+    """
+    Performs the grid search of the test and train R2 of the FFNN over learning 
+    rates and different network arquitectures. Uses the Franke Fuction.
+    Args:
+        plot (boolean):         Optional. True if an output plot should be produced.
+                                Default True.
+        save (boolean):         Optional. True if an output plot should be saved. 
+                                plot must be True to create the output. Default False.
+    """
     
     # Set parameters, this will define neural net and filename to save plot
     epochs = 1000
@@ -328,6 +279,11 @@ def grid_search_ff_hiddenlayers(save = False, plot = True):
         
         
 def ff_initialization():
+    """
+    Performs the grid search of the test and train R2 of the FFNN over learning 
+    rates and different weight initializations (normal or xavier). Uses the Franke 
+    Fuction.
+    """
     
     # Set parameters, this will define neural net and filename to save plot
     epochs = 1000
@@ -379,6 +335,10 @@ def ff_initialization():
 
 
 def ff_initialization_bias():
+    """
+    Performs the grid search of the test and train R2 of the FFNN over learning 
+    rates and different bias initializations. Uses the Franke Fuction.
+    """
     
     # Set parameters, this will define neural net and filename to save plot
     epochs = 1000
@@ -430,6 +390,12 @@ def ff_initialization_bias():
     return r2_all
         
 def train_once(sklearn = False):
+    """
+    Performs a single estimation of FFNN for the predefined inputs using sklearn or handmade solution.
+    Uses the Franke Function.
+    Args:
+        sklearn (boolean):      Optional. True if sklear should be used. Default False.
+    """
 
     X_train, X_test, z_train, z_test = get_ff_data()
     
@@ -469,11 +435,5 @@ def train_once(sklearn = False):
         
     
 if __name__ == "__main__":
-    
-    #grid_search_ff(lmbda_vals = None, eta_vals = None, plot = True, save = True)
-    train_once(sklearn=True)
-    #grid_search_breast(lmbda_vals = None, eta_vals = None, plot = True, save = True)
-    #grid_search_ff_others(save = True, plot = True)
-    #grid_search_ff_hiddenlayers(save = False, plot = True)
-    #ff_initialization()
-    #r2 = ff_initialization_bias()
+    # Functions are run from here for analysis. For example:
+    # grid_search_ff(lmbda_vals = None, eta_vals = None, plot = True, save = True)
