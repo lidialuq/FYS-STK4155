@@ -1,12 +1,5 @@
 # -*- coding: utf-8 -*-
 """
-Created on Thu Nov 11 00:08:51 2021
-
-@author: lidia
-"""
-
-# -*- coding: utf-8 -*-
-"""
 Created on Sun Oct 31 17:40:21 2021
 
 @author: lidia
@@ -32,7 +25,20 @@ parent_dir = Path(__file__).parents[1]
 plots_dir = join(parent_dir, 'figures')
 
 
-def grid_search_breast(plot = True, save = False):
+def grid_search_breast(plot = True, save = False): 
+    """
+    Performs the grid search of the test and train accuracy of the FFNN for the given 
+    lambda inputs. Uses the Wisconsin Breast Cancer Data.
+    Args:
+        lmbda_vals (float):     Optional. Array of regularization parameters lambda.
+                                Default None.
+        eta_vals (float):       Optional. Array of learning rate parameters eta.
+                                Default None.
+        plot (boolean):         Optional. True if an output plot should be produced.
+                                Default True.
+        save (boolean):         Optional. True if an output plot should be saved. 
+                                plot must be True to create the output. Default False.
+    """
     
     # Set parameters, this will define neural net and filename to save plot
     epochs = 1000
@@ -114,6 +120,16 @@ def grid_search_breast(plot = True, save = False):
 
 
 def grid_search_breast_hiddenlayers(save = False, plot = True):
+    """
+    Performs the grid search of the test and train accuracy of the FFNN for the 
+    different learning rates and network structures. Uses the Wisconsin Breast 
+    Cancer Data.
+    Args:
+        plot (boolean):         Optional. True if an output plot should be produced.
+                                Default True.
+        save (boolean):         Optional. True if an output plot should be saved. 
+                                plot must be True to create the output. Default False.
+    """
     
     # Set parameters, this will define neural net and filename to save plot
     epochs = 100
@@ -179,6 +195,10 @@ def grid_search_breast_hiddenlayers(save = False, plot = True):
         plt.show()
         
 def confusion_matrix():
+    """
+    Get confusion matrix using the best preforming parameters as found during the
+    grid search.
+    """
     X_train, X_test, z_train, z_test = get_breastcancer()
     # Initialize neural network
     nn = FFNN(n_datapoints = X_train.shape[0],
@@ -203,6 +223,9 @@ def confusion_matrix():
     print(conf)
     
 def average_accuracy():
+    """
+    Get average accuracy by running network 100 times with the best parameters.
+    """
     tries = 100
     accuracy = np.ones(tries)
     conf = np.ones((2,2))
@@ -239,6 +262,12 @@ def average_accuracy():
         
         
 def train_breast_once(sklearn = False):
+    """
+    Performs a single estimation of FFNN for the predefined inputs using sklearn or handmade solution.
+    Uses the Wisconsin Breast Cancer Data.
+    Args:
+        sklearn (boolean):      Optional. True if sklear should be used. Default False.
+    """
 
     X_train, X_test, z_train, z_test = get_breastcancer()
     
@@ -278,9 +307,5 @@ def train_breast_once(sklearn = False):
         
     
 if __name__ == "__main__":
-    
+    # Functions are run from here for analysis. For example:
     #grid_search_breast(plot = True, save = False)
-    #grid_search_breast_hiddenlayers(save = True, plot = True)
-    #confusion_matrix()
-    #average_accuracy()
-    train_breast_once(sklearn = True)
