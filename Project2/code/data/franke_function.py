@@ -14,10 +14,15 @@ np.random.seed(seed=42)
 class FrankeFunction():
     '''
     Class to sample franke function
-    Args:
-        axis_n (int): number of datapoint per axis (total n = axis_n^2)
-        noise_var (float or int): variance of the noise
-        plot (bool): Plot franke function?
+
+    Attributes:
+        axis_n (int):               number of datapoint per axis (total n = axis_n^2)
+        noise_var (float or int):   variance of the noise
+        plot (bool):                True if the function is to be plotted. Default False.
+
+    Methods:
+        design_matrix():
+            "Creates the design matrix"
     '''
     def __init__(self, axis_n = 20, noise_var = 0, plot = False):
         # Generate x and y vectors divided equally in a 2d grid
@@ -45,6 +50,9 @@ class FrankeFunction():
         Returns the values of the franke function evaluated at x,y
         The shape of the returned z array is equal to the shape of the x and y 
         inputs.
+
+        Returns:
+            franke (2d array): output of the Franke Function
         '''
         term1 = 0.75*np.exp(-(0.25*(9*x-2)**2) - 0.25*((9*y-2)**2))
         term2 = 0.75*np.exp(-((9*x+1)**2)/49.0 - 0.1*(9*y+1))
@@ -53,6 +61,9 @@ class FrankeFunction():
         return term1 + term2 + term3 + term4
         
     def _plot(self, x_2d, y_2d, z_2d):
+        '''
+        Plots the Franke Function.
+        '''
 
         fig = plt.figure()
         ax = fig.gca(projection='3d')
@@ -71,13 +82,16 @@ class FrankeFunction():
     def design_matrix(self, x, y, degree):
         '''
         Creates the design matrix
+
         Args:
             x (1d array): x-coordinates 
             y (1d array): y-coordinates
             degree (int): degree of polynomial in model
+
         Returns: 
             X (2d array): design matrix
         '''
+
         X = []
         for y_exp in range(degree +1):
             for x_exp in range(degree +1):
@@ -87,6 +101,24 @@ class FrankeFunction():
         return X
     
 def get_ff_data(axis_n = 20, degree=3):
+    '''
+    Initializes an instance of the FrankeFunction class, creating the data,
+    and splitting it into test and train sets along with the respective 
+    design matrices X.
+
+    Args:
+        axis_n (int): Optional. number of datapoint per axis (total n = axis_n^2).
+            Default 20.
+        degree (int): Optional. polynomial degree of the target design matrix. 
+            Default 3.
+
+    Returns:
+        X_train (2d array): train part of the design matrix X
+        X_test (2d array): test part of the design matrix X
+        z_train (2d array): train part of the Franke data z
+        z_test (2d array): train part of the Franke data z
+    '''
+
     np.random.seed(42)
     
     # create data

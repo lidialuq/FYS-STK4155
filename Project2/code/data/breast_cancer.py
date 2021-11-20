@@ -16,7 +16,19 @@ from sklearn.model_selection import train_test_split
 
 
 def get_breastcancer():
-    
+    '''
+    Reads the Wisconshin Breast Cancer Dataset and  splits into test and train sets 
+    along with the respective design matrices X.
+
+    Returns:
+        X_train (2d array): train part of the design matrix X
+        X_test (2d array): test part of the design matrix X
+        y_train (2d array): train part of the Franke data z
+        y_test (2d array): train part of the Franke data z
+    '''
+
+
+
     # Load dataset and get X and y matrixes
     dataset = load_breast_cancer()
     #print(dataset.DESCR) # Print the data set description
