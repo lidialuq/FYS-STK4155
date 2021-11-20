@@ -45,3 +45,16 @@ figures/
 ```
 
 ## Usage
+**Data**
+data/franke_function.py: Samples, splits and normalises data from the Franke Function
+data/breast_cancer.py: Access Wisconsin Breast Cancer Dataset, splits and normalises data.
+
+**Models**
+ffnn.py: Our Feed Forward Neural Network class. It uses helpers/activations.py and helpers/cost_functions.py as dependecies.
+Fredrik sine
+
+**Experiments**
+experiments_ff_nn.py: All experiments with our FFNN using the Franke function dataset
+experiments_bc_nn.py: All experiments with our FFNN using the Wisconsin Breast Cancer dataset
+
+
