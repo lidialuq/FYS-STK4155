@@ -9,7 +9,7 @@ from matplotlib import cm
 from matplotlib.ticker import LinearLocator, FormatStrFormatter
 from sklearn.model_selection import train_test_split
 
-np.random.seed(seed=42) 
+#np.random.seed(seed=42) 
 
 class FrankeFunction():
     '''
@@ -87,7 +87,7 @@ class FrankeFunction():
         return X
     
 def get_ff_data(axis_n = 20, degree=3):
-    np.random.seed(42)
+    #np.random.seed(42)
     
     # create data
     ff = FrankeFunction(axis_n = axis_n, noise_var = 0.1, plot = False)
@@ -95,7 +95,7 @@ def get_ff_data(axis_n = 20, degree=3):
     
     # split data 
     X_train, X_test, z_train, z_test = \
-        train_test_split(X, ff.z, test_size = 0.3, shuffle = True)
+        train_test_split(X, ff.z, test_size = 0.3, shuffle = True, random_state = None)
     
     # normalize by removing mean
     for i in range(X_train.shape[1]):

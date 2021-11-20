@@ -1,3 +1,5 @@
+# written by @fredhof
+
 import numpy as np
 
 from helpers.cost_functions import BinaryCrossEntropy
@@ -13,12 +15,10 @@ class SGD:
 		self.z = z # True parameters
 		self.eta = eta # learning rate
 		self.lmd = lmd # Ridge hyperparameter
-		self.epochs = epochs # number of epochs 
+		self.epochs = epochs # maximum number of epochs 
 		self.minibatch_n = minibatch_n # number of mini-batches, size is self.N//self.minibatch_n 
-		# where 0 = DG, 1 = SGD, N = SGD with mini-batches of size N
+		
 		self.tol = tol # tolerance for cost-functions, and Adam
-		if str(activation) == 'Linear':
-			self.tol = self.tol * 1e-2
 		# if self.tol < 1e-9, Adam takes a lot more time
 		self.theta = None # predicted parameters
 
@@ -33,8 +33,13 @@ class SGD:
 		
 		self.N = X.shape[0] 
 		self.P = X.shape[1] # number of parameters/lenght of self.theta
+
+		if str(activation) == 'Sigmoid': 
+			self.lmd = -self.lmd # So __gradient__ is correct
+			self.tol = self.tol*1e-3 # LogReg needs more precision
 		
 
+	# fits the SGD method
 	def __call__(self, sgd_method):
 		if sgd_method == 'vanilla':
 			self.__vanilla()
@@ -46,11 +51,9 @@ class SGD:
 			self.__Adam()
 
 	def __init_th(self):
-		#np.random.seed(42) # easy way to guarantee same values for self.theta,
-		# NECCESSARY IF RUNNING 'optimize_sgd_params.py', it resets the seed, so you get the same theta values
 		return np.random.normal(0,1, size=(self.P,1))
 
-	# time-based decay
+	# time(epoch)-based decay
 	def __learning_schedule(self, epoch, eta):
 		return eta/(1+epoch*self.eta/self.epochs)
 
@@ -58,23 +61,33 @@ class SGD:
 	#def __learning_schedule(self, t, eta):
 	#	return eta - self.eta/(self.epochs*self.N)
 	
-	def __convergence_cost__(self):
-		if self.grad_method == 'ordinary':
-			cost = 1/self.N * (self.activation(self.X @ self.theta) - self.z).T @ (self.activation(self.X @ self.theta) - self.z)
-		elif self.grad_method == 'ridge':
-			L2 = self.lmd/self.N * np.sum(self.theta**2)
-			cost = 1/self.N * (self.activation(self.X @ self.theta) - self.z).T @ (self.activation(self.X @ self.theta) - self.z) + L2
+	def __cost__(self):
+		rnd = self.minibatch_n*np.random.randint(self.N//self.minibatch_n)
+		self.Xi = self.X[rnd:rnd+self.minibatch_n]
+		self.zi = self.z[rnd:rnd+self.minibatch_n]
+		
+		# MSE Cost
+		if str(self.activation) == 'Linear':
+			if self.grad_method == 'ordinary':
+				cost = 1/self.Xi.shape[0] * (self.activation(self.Xi @ self.theta) - self.zi).T @ (self.activation(self.Xi @ self.theta) - self.zi)
+			elif self.grad_method == 'ridge':
+				L2 = np.abs(self.lmd)/self.N * np.sum(self.theta**2)
+				cost = 1/self.Xi.shape[0] * (self.activation(self.Xi @ self.theta) - self.zi).T @ (self.activation(self.Xi @ self.theta) - self.zi) + L2
+		
+		# BinaryCrossEntropy
+		if str(self.activation) == 'Sigmoid':
+			if self.grad_method == 'ordinary':
+				cost = -np.mean( self.zi * np.log(self.activation(self.Xi @ self.theta)) + (1-self.zi) * np.log(1-self.activation(self.Xi @ self.theta)))
+			elif self.grad_method == 'ridge':
+				L2 = np.abs(self.lmd)/self.N * np.sum(self.theta**2)
+				cost = -np.mean( self.zi * np.log(self.activation(self.Xi @ self.theta)) + (1-self.zi) * np.log(1-self.activation(self.Xi @ self.theta))) + L2
 		return np.mean(cost)
 
 	def __gradient__(self):
-		rnd = self.minibatch_n*np.random.randint(self.N//self.minibatch_n)
-		Xi = self.X[rnd:rnd+self.minibatch_n] # mbn = 1 -> SGD, mbn > 1 -> SGD with minibatches
-		zi = self.z[rnd:rnd+self.minibatch_n]
-
 		if self.grad_method == 'ordinary':
-			gradient = 2 * Xi.T @ (self.activation(Xi @ self.theta) - zi)
-		elif self.grad_method == 'ridge':
-			gradient = 2 * (Xi.T @ (self.activation(Xi @ self.theta) - zi) + self.lmd*self.theta)
+			gradient = 1/self.Xi.shape[0] * self.Xi.T @ (self.activation(self.Xi @ self.theta) - self.zi)
+		elif self.grad_method == 'ridge': # #self.lmd negative if Sigmoid
+			gradient = 1/self.Xi.shape[0] * (self.Xi.T @ (self.activation(self.Xi @ self.theta) - self.zi)) + 2*self.lmd*self.theta 
 		return gradient
 
 	# Vanilla SGD method, Newton's (-Raphson) method
@@ -86,8 +99,9 @@ class SGD:
 		for epoch in range(self.epochs):
 			cost = np.zeros(self.N)
 			for i in range(self.N):
+				cost1 = self.__cost__()
 				gradients = self.__gradient__()
-				cost1 = self.__convergence_cost__()
+				
 				cost[i] = cost1
 
 				if np.abs(cost0 - cost1) < self.tol or np.isnan(np.abs(cost0 - cost1)):
@@ -100,7 +114,7 @@ class SGD:
 			
 			#print(f'Epoch {epoch}, average train loss {np.mean(cost)}')
 			if fin:
-				#print(f'Theta reached at epoch {epoch}. ')
+				print(f'Theta reached at epoch {epoch}. ')
 				break
 
 	def __momentum(self):
@@ -115,8 +129,9 @@ class SGD:
 		for epoch in range(self.epochs):
 			cost = np.zeros(self.N)
 			for i in range(self.N):
+				cost1 = self.__cost__()
 				gradients = self.__gradient__()
-				cost1 = self.__convergence_cost__()
+				
 				cost[i] = cost1
 
 				if np.abs(cost0 - cost1) < self.tol or np.isnan(np.abs(cost0 - cost1)):
@@ -131,7 +146,7 @@ class SGD:
 				self.theta = self.theta - alpha
 			#print(f'Epoch {epoch}, average train loss {np.mean(cost)}')
 			if fin:
-				#print(f'Theta reached at epoch {epoch}. ')
+				print(f'Theta reached at epoch {epoch}. ')
 				break
 
 	def __Adam(self):
@@ -147,8 +162,9 @@ class SGD:
 		for epoch in range(self.epochs):
 			cost = np.zeros(self.N)
 			for i in range(self.N):
+				cost1 = self.__cost__()
 				gradients = self.__gradient__()
-				cost1 = self.__convergence_cost__()
+				
 				cost[i] = cost1
 				if np.abs(cost0 - cost1) < self.tol or np.isnan(np.abs(cost0 - cost1)):
 					fin = True
@@ -164,7 +180,7 @@ class SGD:
 				self.theta = self.theta - self.eta * mt / (np.sqrt(vt) + self.tol)
 			#print(f'Epoch {epoch}, average train loss {np.mean(cost)}')
 			if fin:
-				#print(f'Theta reached at epoch {epoch}. ')
+				print(f'Theta reached at epoch {epoch}. ')
 				break
 
 	def predict(self, X):

@@ -11,7 +11,7 @@ from sklearn import linear_model
 import matplotlib.pyplot as plt
 from matplotlib import cm
 from matplotlib.ticker import LinearLocator, FormatStrFormatter
-np.random.seed(seed=42)
+#np.random.seed(seed=42)
 
 
 class FrankeFunction():
