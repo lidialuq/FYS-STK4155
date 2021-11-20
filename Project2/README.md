@@ -20,41 +20,28 @@ Install all dependencies that are required for the project by running:
 pip install -r requirements.txt
 ```
 
-## Code Structure
-```
-README.md
-requirements.txt
-code/
-|- data/
-	|- optimization_sgd_files/
-	|- breast_cancer.py
-	|- franke_function.py
-|- helpers/
-	|- activations.py
-	|- cost_functions.py
-|- analysis.py
-|- analysis_proj1.py
-|- ffnn.py
-|- experiments.py
-|- main.py
-|- optimize_sgd_params.py
-|- sgd.py
-figures/
-|- breast_cancer/
-|- franke_function/
-```
-
 ## Usage
+Some selected figures can be found in the figures folder. The code folder contains the following: 
+
 **Data**
+
 data/franke_function.py: Samples, splits and normalises data from the Franke Function
+
 data/breast_cancer.py: Access Wisconsin Breast Cancer Dataset, splits and normalises data.
 
 **Models**
-ffnn.py: Our Feed Forward Neural Network class. It uses helpers/activations.py and helpers/cost_functions.py as dependecies.
-Fredrik sine
+
+ffnn.py: Our Feed Forward Neural Network class, can be used for both regression and classification. It uses helpers/activations.py and helpers/cost_functions.py as dependecies.
+
+sgd.py: Class implementing liner and logistic regression with different gradient descent methods as optimizers.
+
+analysis_proj1.py: Linear Regression class used in Project 1. We use it to compare our results.
 
 **Experiments**
+
 experiments_ff_nn.py: All experiments with our FFNN using the Franke function dataset
+
 experiments_bc_nn.py: All experiments with our FFNN using the Wisconsin Breast Cancer dataset
 
+linear_logistic.py and optimize_sgd_params.py: All experiements using linear and logistic regression with gradient descent.
 
