@@ -9,10 +9,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
-import shutil
-import tempfile
-import time
+
 import matplotlib.pyplot as plt
 import numpy as np
 from monai.apps import DecathlonDataset
@@ -47,13 +44,8 @@ from monai.transforms import (
 )
 from monai.utils import set_determinism
 
-import torch
-import sys
-from os.path import dirname, abspath
 
-set_determinism(seed=43)
-parent_dir = dirname(dirname(abspath(__file__)))
-#root_dir = os.path.join(parent_dir, 'data', 'BraTs_decathlon', 'Task01_BrainTumour')
+set_determinism(seed=99)
 root_dir = '/home/lidia/CRAI-NAS/BraTS/BraTs_2016-17'
 print(root_dir)
 
@@ -91,21 +83,10 @@ train_transform = Compose(
         LoadImaged(keys=["image", "label"]),
         EnsureChannelFirstd(keys="image"),
         ConvertToMultiChannelBasedOnBratsClassesd(keys="label"),
-        Spacingd(
-            keys=["image", "label"],
-            pixdim=(1.0, 1.0, 1.0),
-            mode=("bilinear", "nearest"),
-        ),
-        Orientationd(keys=["image", "label"], axcodes="RAS"),
-        RandSpatialCropd(keys=["image", "label"], roi_size=[224, 224, 144], random_size=False),
-        AddChanneld(keys=["image", "label"]),
-        # RandFlipd(keys=["image", "label"], prob=0.5, spatial_axis=0),
-        # RandFlipd(keys=["image", "label"], prob=0.5, spatial_axis=1),
-        # RandFlipd(keys=["image", "label"], prob=0.5, spatial_axis=3),
-        RandAffined(keys=["image", "label"], prob=0.5, rotate_range=[-1,1]),
-        NormalizeIntensityd(keys="image", nonzero=True, channel_wise=True),
-        RandScaleIntensityd(keys="image", factors=0.1, prob=1.0),
-        RandShiftIntensityd(keys="image", offsets=0.1, prob=1.0),
+        
+        # This does not work as expected
+        RandFlipd(keys=["image", "label"], prob=0.5, spatial_axis=0),
+        
         EnsureTyped(keys=["image", "label"]),
     ]
 )
@@ -114,13 +95,6 @@ val_transform = Compose(
         LoadImaged(keys=["image", "label"]),
         EnsureChannelFirstd(keys="image"),
         ConvertToMultiChannelBasedOnBratsClassesd(keys="label"),
-        Spacingd(
-            keys=["image", "label"],
-            pixdim=(1.0, 1.0, 1.0),
-            mode=("bilinear", "nearest"),
-        ),
-        Orientationd(keys=["image", "label"], axcodes="RAS"),
-        NormalizeIntensityd(keys="image", nonzero=True, channel_wise=True),
         EnsureTyped(keys=["image", "label"]),
     ]
 )
@@ -153,7 +127,7 @@ plt.figure("image", (24, 6))
 for i in range(4):
     plt.subplot(1, 4, i + 1)
     plt.title(f"image channel {i}")
-    plt.imshow(train_ds[2]["image"][i, :, :, 60].detach().cpu(), cmap="gray")
+    plt.imshow(train_ds[2]["image"][i, :, :, 80].detach().cpu(), cmap="gray")
 plt.show()
 # also visualize the 3 channels label corresponding to this image
 print(f"label shape: {train_ds[2]['label'].shape}")
@@ -161,5 +135,5 @@ plt.figure("label", (18, 6))
 for i in range(3):
     plt.subplot(1, 3, i + 1)
     plt.title(f"label channel {i}")
-    plt.imshow(train_ds[2]["label"][i, :, :, 60].detach().cpu())
+    plt.imshow(train_ds[2]["label"][i, :, :, 80].detach().cpu())
 plt.show()
