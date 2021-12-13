@@ -11,8 +11,8 @@ from torch import nn, einsum
 import torch.nn.functional as F
 from einops import rearrange
 
-from .layers import *
-from .lambda_layer import *
+from .layers import Down, Up, OutConv, DoubleConv
+from .lambda_layer import LambdaLayer
 
 
 class LambdaUnet(nn.Module):
@@ -21,13 +21,13 @@ class LambdaUnet(nn.Module):
         self.n_channels = cfg.n_channels
         self.n_classes = cfg.n_classes
         self.bilinear = cfg.bilinear
-
+        factor = 2 if cfg.bilinear else 1
+        
         self.inc = DoubleConv(cfg, cfg.n_channels, 64)
         self.down1 = Down(cfg, 64, 128)
         self.down2 = Down(cfg, 128, 256)
         self.down3 = Down(cfg, 256, 512)
-        self.pool = nn.MaxPool2d(2)
-        factor = 2 if cfg.bilinear else 1
+        #self.pool = nn.MaxPool2d(2)
         self.down4 = Down(cfg, 512, 1024 // factor)
         self.up1 = Up(cfg, 1024, 512 // factor, cfg.uplambdaLayer[0], cfg.bilinear)
         self.up2 = Up(cfg, 512, 256 // factor, cfg.uplambdaLayer[1], cfg.bilinear)
