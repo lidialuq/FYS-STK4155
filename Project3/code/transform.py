@@ -4,10 +4,16 @@
 Created on Mon Dec 13 17:54:43 2021
 
 @author: lidia
+
 """
 import numpy as np 
 from monai.transforms import MapTransform
 
+"""
+Convert BraTS labels to make them more suitable for supervised deep learning
+This transform is copied from 
+https://github.com/Project-MONAI/tutorials/blob/master/3d_segmentation/brats_segmentation_3d.ipynb
+"""
 
 class ConvertToMultiChannelBasedOnBratsClassesd(MapTransform):
     """

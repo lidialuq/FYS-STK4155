@@ -21,31 +21,22 @@ import time
 import matplotlib.pyplot as plt
 import numpy as np
 from monai.apps import DecathlonDataset
-from monai.config import print_config
 from monai.data import DataLoader, decollate_batch
-from monai.handlers.utils import from_engine
 from monai.losses import DiceLoss
 from monai.metrics import DiceMetric
 from monai.networks.nets import DynUNet
 from monai.transforms import (
     Resized,
     CropForegroundd,
-    CropForeground,
     Activations,
-    Activationsd,
     AsDiscrete,
-    AsDiscreted,
     Compose,
-    Invertd,
     LoadImaged,
-    LoadImage,
-    MapTransform,
     NormalizeIntensityd,
     Orientationd,
     RandFlipd,
     RandScaleIntensityd,
     RandShiftIntensityd,
-    RandSpatialCropd,
     SpatialPadd,
     EnsureChannelFirstd,
     EnsureTyped,
@@ -53,66 +44,56 @@ from monai.transforms import (
     RandAffined,
 )
 from monai.utils import set_determinism
-from os.path import dirname, abspath
 import torch
 import pickle
+from transform import ConvertToMultiChannelBasedOnBratsClassesd
+
+"""
+Set up a UNet segmentation model and train. Validation is done after each batch.
+The current best model is automatically saved. 
+To use: Set the path to the training and test data, where to save the trained
+model and where to save the figures to. Choose learning rate and whether to 
+use augmentation.
+
+"""
 
 
 ###############################################################################
-# Configuration
+# Configuration of paths and model
 ###############################################################################
 
 set_determinism(seed=42)
-parent_dir = dirname(dirname(abspath(__file__)))
-#root_dir = os.path.join(parent_dir, 'data', 'BraTs_decathlon', 'Task01_BrainTumour')
-# data_dir = '/home/lidia/CRAI-NAS/BraTS/BraTs_2016-17'
-# model_dir = '/home/lidia/Projects/fys-stk4155/Project3/saved_models'
-data_dir = '/home/lidia/CRAI-NAS/BraTS/BraTs_2016-17'#'/mnt/CRAI-NAS/all/BraTS/BraTs_2016-17'
+
+data_dir = '/home/lidia/CRAI-NAS/BraTS/BraTs_2016-17'
 model_dir = '/mnt/CRAI-NAS/all/lidfer/Segmentering/saved_models/DynUnet_2deepsup_1e3'
 save_figures = "/home/lidia/Projects/fys-stk4155/Project3/figures"
 
-print(f'Reading data from {data_dir}')
-print(f'Saving data in {model_dir}')
+lr = 5e-4
+augmentation = False 
 
-###############################################################################
-# Convert labels
-###############################################################################
 
-class ConvertToMultiChannelBasedOnBratsClassesd(MapTransform):
-    """
-    Convert labels to multi channels based on brats classes:
-    label 1 is the peritumoral edema
-    label 2 is the GD-enhancing tumor
-    label 3 is the necrotic and non-enhancing tumor core
-    The possible classes are TC (Tumor core), WT (Whole tumor)
-    and ET (Enhancing tumor).
-
-    """
-
-    def __call__(self, data):
-        d = dict(data)
-        for key in self.keys:
-            result = []
-            # merge label 2 and label 3 to construct TC
-            result.append(np.logical_or(d[key] == 2, d[key] == 3))
-            # merge labels 1, 2 and 3 to construct WT
-            result.append(
-                np.logical_or(
-                    np.logical_or(d[key] == 2, d[key] == 3), d[key] == 1
-                )
-            )
-            # label 2 is ET
-            result.append(d[key] == 2)
-            d[key] = np.stack(result, axis=0).astype(np.float32)
-        return d
-  
 ###############################################################################
 # Define Transforms
 ###############################################################################
     
-#spatial_size=(180,180,144)
+# Tranform used on data before training WITHOUT augmentation
+train_transform_without = Compose([
+        # Load images, set first dim to channel, resize and normalize
+        LoadImaged(keys=["image", "label"]),
+        EnsureChannelFirstd(keys="image"),
+        ConvertToMultiChannelBasedOnBratsClassesd(keys="label"),
+        Orientationd(keys=["image", "label"], axcodes="RAS"),
+        CropForegroundd(keys=["image", "label"], source_key="image"),
+        SpatialPadd(keys=["image", "label"], spatial_size=(128,128,128)),
+        Resized(keys=["image", "label"], spatial_size=(128,128,128), align_corners=[False,None],
+                mode=["trilinear", "nearest"]),
+        NormalizeIntensityd(keys="image", nonzero=True, channel_wise=True),
+        # Convert to tensor
+        EnsureTyped(keys=["image", "label"], data_type='tensor'),
+    ])
 
-train_transform = Compose([
+# Tranform used on data before training WITH augmentation
+train_transform_with = Compose([
         # Load images, set first dim to channel, resize and normalize
         LoadImaged(keys=["image", "label"]),
         EnsureChannelFirstd(keys="image"),
@@ -138,6 +119,7 @@ train_transform = Compose([
         EnsureTyped(keys=["image", "label"], data_type='tensor'),
     ])
 
+# Tranform used on data before validation (does not include augmentation)
 val_transform = Compose([       
         # Load images, set first dim to channel, resize and normalize
         LoadImaged(keys=["image", "label"]),
@@ -159,12 +141,17 @@ val_transform = Compose([
 # Load Data
 ###############################################################################
 
-# Import dataset
-# here we don't cache any data in case out of memory issue
+# Import train and test datasets
+
+if augmentation: 
+    transform = train_transform_with
+else: 
+    transform = train_transform_without
+    
 train_ds = DecathlonDataset(
     root_dir=data_dir,
     task="Task01_BrainTumour",
-    transform=train_transform,
+    transform=transform,
     section="training",
     download=False,
     cache_rate=0.0,
@@ -186,30 +173,11 @@ train_loader = DataLoader(train_ds, batch_size=3, shuffle=True, num_workers=4)
 val_loader = DataLoader(val_ds, batch_size=3, shuffle=False, num_workers=4)
 print('Done making datasets')
 
-# shapes = [[],[],[]]
-# print(10)
-# for i in range(10):
-#     data = train_ds[i]
-#     shapes[0].append( data['image'].shape[1])
-#     shapes[1].append( data['image'].shape[2])
-#     shapes[2].append( data['image'].shape[3])
-# 
-# print(len(val_ds))
-# for i in range(len(val_ds)):
-#     data = val_ds[i]
-#     shapes[0].append( data['image'].shape[1])
-#     shapes[1].append( data['image'].shape[2])
-#     shapes[2].append( data['image'].shape[3])
-#
-# print(f'Max/min axis 1: {max(shapes[0])}/{min(shapes[0])}')
-# print(f'Max/min axis 2: {max(shapes[1])}/{min(shapes[1])}')
-# print(f'Max/min axis 3: {max(shapes[2])}/{min(shapes[2])}')
-
-
 
 ###############################################################################
-# Visualize
+# Visualize inputs to model after augmentation for chosen patient
 ###############################################################################
+
 pat = 45
 data = train_ds[pat]
 # pick one image from DecathlonDataset to visualize and check the 4 channels
@@ -248,11 +216,10 @@ plt.savefig(os.path.join(save_figures, f'training_labels_{pat}'))
 plt.show()
 
 
-
 ###############################################################################
 # Model
 ###############################################################################
-'''
+
 max_epochs = 300
 val_interval = 1
 VAL_AMP = True  #Use automatic precision package from torch
@@ -274,11 +241,11 @@ model = DynUNet(
 
 loss_function = DiceLoss(smooth_nr=0, smooth_dr=1e-6, squared_pred=True, 
                          to_onehot_y=False, sigmoid=True)
-optimizer = torch.optim.Adam(model.parameters(), lr=1e-3, weight_decay=1e-5)
+optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=1e-5)
 lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=75, gamma=0.05)
-#lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=max_epochs)
 
-# will compute mean dice on the decollated `predictions` and `labels`, which are list of `channel-first` tensors
+# will compute mean dice on the decollated `predictions` and `labels`, which are 
+# list of `channel-first` tensors
 dice_metric = DiceMetric(include_background=True, reduction="mean")
 dice_metric_batch = DiceMetric(include_background=True, reduction="mean_batch")
 
@@ -335,9 +302,7 @@ for epoch in range(max_epochs):
         # Using amp, get output and loss
         with torch.cuda.amp.autocast():
             feature_maps = model(inputs)
-            #print(feature_maps.shape)
             feature_maps = torch.unbind(feature_maps, dim=1)
-            #print(feature_maps.shape)
 
             # calculate loss from deep supervision
             losses = []
@@ -346,7 +311,6 @@ for epoch in range(max_epochs):
                 loss_layer = loss_function(feature_map, labels)
                 loss += loss_layer
                 losses.append( loss_layer.item())
-        # weight deep supervision losses and output loss to train
 
         # Backpropagation and update of learnable parameters
         scaler.scale(loss).backward()   #compute gradients
@@ -429,7 +393,7 @@ print(f'Total training time: {total_time//3600}h {(total_time%3600)//60}min')
 
 
 ###############################################################################
-# Save metrics and plot
+# Save metrics 
 ###############################################################################
 
 # make dictionary
@@ -444,10 +408,5 @@ metrics_dict = {'loss': epoch_loss_values,
 # save dictionary with pickle
 with open(os.path.join(model_dir, "metrics.pth"), 'wb') as f: 
     pickle.dump(metrics_dict, f)
-'''
 
 
-
-#check out: https://github.com/cv-lee/BraTs/blob/master/pytorch/dataset.py 
-#https://github.com/Project-MONAI/tutorials/blob/master/3d_segmentation/brats_segmentation_3d.ipynb
-# https://towardsdatascience.com/3d-volumes-augmentation-for-tumor-segmentation-using-monai-1b6d92b34813
