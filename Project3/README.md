@@ -1,6 +1,6 @@
 The aim of this project was to compare a UNet segmentation model trained with and without data augmentation. The BraTS dataset was used to train and validate the models. 
 
-Some selected figures can be found in the figures folder, including examples of the output segmentations of the trained model. The model_metrics folder contains, for each trained model, a dictionary with the training and validation losses for each epoch (used for plotting). The data is saved with pickle. The trained models could not be saved due to space limitations on github.
+Some selected figures can be found in the figures folder, including examples of the output segmentations of the trained model. The model_metrics folder contains, for each trained model, a dictionary with the training and validation losses for each epoch (used for plotting). The data is saved with pickle. The trained models could not be saved on github due to space limitations, but can be shared upon request.
 
 The code folder contains the following: 
 
